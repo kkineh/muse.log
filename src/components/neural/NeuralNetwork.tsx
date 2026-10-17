@@ -5,6 +5,7 @@ import * as d3Selection from 'd3-selection';
 import * as d3Drag from 'd3-drag';
 import { useD3ForceSimulation } from '@/hooks/useD3ForceSimulation';
 import { NeuralSignalLayer, type SignalLayerHandle } from './NeuralSignalLayer';
+import { hexA, type NeuralPalette } from '@/lib/neural-palettes';
 import { flattenNeuralGraph } from '@/lib/neural-graph-builder';
 import type { NeuralNode } from '@/lib/neural-graph-builder';
 
@@ -16,6 +17,9 @@ interface NeuralNetworkProps {
   onBackgroundClick: () => void;
   tagPostLinks?: { source: string; target: string; sharedCount: number }[];
   navigatingPostId?: string | null;
+  palette: NeuralPalette;
+  variant?: 'full' | 'mini';
+  currentPostId?: string | null;
 }
 
 export function NeuralNetwork({
@@ -26,6 +30,9 @@ export function NeuralNetwork({
   onBackgroundClick,
   tagPostLinks,
   navigatingPostId,
+  palette,
+  variant = 'full',
+  currentPostId = null,
 }: NeuralNetworkProps) {
   const { initialNodes, links } = useMemo(() => {
     const flatNodes = flattenNeuralGraph(data);
@@ -72,13 +79,19 @@ export function NeuralNetwork({
   const nodesGRef = useRef<SVGGElement>(null);
   const signalRef = useRef<SignalLayerHandle>(null);
 
+  const mini = variant === 'mini';
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const {
     nodes: allNodes,
     dragHandlers,
     transform,
+    fitted,
   } = useD3ForceSimulation(initialNodes, links, svgRef, gRef, {
     centerX: 0,
     centerY: 0,
+    fitToView: mini,
+    minZoom: mini ? 0.08 : undefined,
   });
 
   // Store callbacks in refs so D3 drag can access latest versions
@@ -203,17 +216,25 @@ export function NeuralNetwork({
 
   const [windowSize, setWindowSize] = useState({ w: 1920, h: 1080 });
   useEffect(() => {
+    if (mini) {
+      const el = containerRef.current;
+      if (!el) return;
+      const observer = new ResizeObserver(() => setWindowSize({ w: el.clientWidth, h: el.clientHeight }));
+      observer.observe(el);
+      return () => observer.disconnect();
+    }
     setWindowSize({ w: window.innerWidth, h: window.innerHeight });
     const onResize = () => setWindowSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, []);
+  }, [mini]);
 
   return (
-    <div className="fixed inset-0 overflow-hidden">
+    <div ref={containerRef} className={`${mini ? 'absolute' : 'fixed'} inset-0 overflow-hidden`}>
       <svg
         ref={svgRef}
         className="absolute inset-0 w-full h-full"
+        style={mini ? { opacity: fitted ? 1 : 0 } : undefined}
         width={windowSize.w}
         height={windowSize.h}
         onClick={(e) => {
@@ -273,7 +294,7 @@ export function NeuralNetwork({
                 : sharedCount >= 2 ? 'url(#tag-link-glow-2)'
                 : 'url(#tag-link-glow-1)';
             } else {
-              edgeStroke = link.depth === 3 ? '#fde047' : '#00FFC8';
+              edgeStroke = link.depth === 3 ? palette.sub3 : palette.cat;
               edgeWidth = link.depth === 1 ? 1.5 : link.depth === 2 ? 1 : 0.7;
             }
 
@@ -307,29 +328,30 @@ export function NeuralNetwork({
               const dimmed = isNodeDimmed(node.id);
               const highlighted = highlightedPosts.includes(node.id);
               const blinking = blinkingSet?.has(node.id) ?? false;
+              const current = node.id === currentPostId;
 
               let fill: string, stroke: string, strokeWidth: number;
               let labelFill: string, fontSize: number, fontWeight: number;
 
               if (depth === 1) {
-                fill = 'rgba(0,255,200,0.12)';
-                stroke = 'rgba(0,255,200,0.7)';
+                fill = hexA(palette.cat, 0.12);
+                stroke = hexA(palette.cat, 0.7);
                 strokeWidth = 1.5;
-                labelFill = '#00FFC8';
+                labelFill = palette.cat;
                 fontSize = 13;
                 fontWeight = 500;
               } else if (depth === 2) {
-                fill = 'rgba(167,139,250,0.1)';
-                stroke = 'rgba(167,139,250,0.6)';
+                fill = hexA(palette.sub, 0.1);
+                stroke = hexA(palette.sub, 0.6);
                 strokeWidth = 1;
-                labelFill = '#c4b5fd';
+                labelFill = palette.sub;
                 fontSize = 11;
                 fontWeight = 400;
               } else if (depth === 3 && node.type === 'subcategory') {
-                fill = 'rgba(250,204,21,0.1)';
-                stroke = 'rgba(250,204,21,0.6)';
+                fill = hexA(palette.sub3, 0.1);
+                stroke = hexA(palette.sub3, 0.6);
                 strokeWidth = 1;
-                labelFill = '#fde047';
+                labelFill = palette.sub3;
                 fontSize = 10;
                 fontWeight = 400;
               } else {
@@ -343,11 +365,11 @@ export function NeuralNetwork({
 
               const glowColor =
                 depth === 1
-                  ? '#00FFC8'
+                  ? palette.cat
                   : depth === 2
-                    ? '#a78bfa'
+                    ? palette.sub
                     : depth === 3 && node.type === 'subcategory'
-                      ? '#facc15'
+                      ? palette.sub3
                       : '#fff';
               const glowFilter =
                 active || highlighted || blinking
@@ -380,8 +402,8 @@ export function NeuralNetwork({
                     y={-h / 2}
                     rx={8}
                     ry={8}
-                    fill={fill}
-                    stroke={blinking ? glowColor : stroke}
+                    fill={current ? 'rgba(255,255,255,0.14)' : fill}
+                    stroke={blinking ? glowColor : current ? 'rgba(255,255,255,0.6)' : stroke}
                     strokeWidth={active || highlighted || blinking ? 2 : strokeWidth}
                     filter={glowFilter}
                   >
@@ -394,8 +416,8 @@ export function NeuralNetwork({
                       r={3}
                       cx={-w / 2 + 12}
                       cy={0}
-                      fill="#00FFC8"
-                      filter="drop-shadow(0 0 4px #00FFC8)"
+                      fill={palette.cat}
+                      filter={`drop-shadow(0 0 4px ${palette.cat})`}
                     />
                   )}
                   <text
@@ -437,7 +459,7 @@ export function NeuralNetwork({
                       rx={10}
                       ry={10}
                       fill="none"
-                      stroke={depth === 1 ? '#00FFC8' : depth === 2 ? '#a78bfa' : '#fff'}
+                      stroke={depth === 1 ? palette.cat : depth === 2 ? palette.sub : '#fff'}
                       strokeWidth={1.5}
                     >
                       <animate attributeName="opacity" values="0.6;0;0.6" dur="1.5s" repeatCount="indefinite" />
@@ -451,16 +473,20 @@ export function NeuralNetwork({
         </g>
       </svg>
 
-      {/* Vignette */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse at center, transparent 0%, rgba(8, 11, 16, 0.82) 65%, rgba(8, 11, 16, 0.98) 100%)',
-        }}
-      />
+      {!mini && (
+        <>
+          {/* Vignette */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(ellipse at center, transparent 0%, rgba(8, 11, 16, 0.82) 65%, rgba(8, 11, 16, 0.98) 100%)',
+            }}
+          />
 
-      <NeuralSignalLayer ref={signalRef} nodes={allNodes} links={links} transform={transform} />
+          <NeuralSignalLayer ref={signalRef} nodes={allNodes} links={links} transform={transform} palette={palette} />
+        </>
+      )}
     </div>
   );
 }

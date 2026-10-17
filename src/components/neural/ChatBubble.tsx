@@ -51,7 +51,7 @@ export function ChatBubble({
         <div
           className={`px-4 py-3 rounded-2xl ${
             role === 'user'
-              ? 'bg-[#00FFC820] border border-[#00FFC840]'
+              ? 'bg-[rgb(var(--accent-rgb)/0.125)] border border-[rgb(var(--accent-rgb)/0.25)]'
               : 'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)]'
           }`}
           style={{
@@ -61,7 +61,7 @@ export function ChatBubble({
           <p className="text-[#F0F0F0] text-sm leading-relaxed whitespace-pre-wrap">
             {displayedText}
             {isTyping && (
-              <span className="inline-block w-1 h-4 ml-1 bg-[#00FFC8] animate-pulse" />
+              <span className="inline-block w-1 h-4 ml-1 bg-[var(--neural-accent)] animate-pulse" />
             )}
           </p>
         </div>
@@ -77,7 +77,7 @@ export function ChatBubble({
               <button
                 key={slug}
                 onClick={() => onSlugClick?.(slug)}
-                className="px-3 py-1 text-xs rounded-full border border-[#00FFC840] text-[#00FFC8] hover:bg-[#00FFC810] transition-colors"
+                className="px-3 py-1 text-xs rounded-full border border-[rgb(var(--accent-rgb)/0.25)] text-[var(--neural-accent)] hover:bg-[rgb(var(--accent-rgb)/0.06)] transition-colors"
                 style={{ fontFamily: 'var(--font-ibm-plex-mono), monospace' }}
               >
                 관련 글: {slug}

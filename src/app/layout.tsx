@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import LayoutContent from '@/components/LayoutContent';
+import { NeuralPaletteApplier } from '@/components/NeuralPaletteApplier';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -47,6 +48,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange={false}
         >
+          <NeuralPaletteApplier />
           <LayoutContent>{children}</LayoutContent>
         </ThemeProvider>
       </body>

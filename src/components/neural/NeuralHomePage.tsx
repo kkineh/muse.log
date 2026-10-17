@@ -4,6 +4,8 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { NeuralNetwork } from './NeuralNetwork';
 import { CenterCard } from './CenterCard';
+import { NEURAL_PALETTES } from '@/lib/neural-palettes';
+import { useNeuralPalette } from '@/hooks/useNeuralPalette';
 import { useSessionStorage } from '@/hooks/useSessionStorage';
 import type { NeuralGraphData, NeuralNode } from '@/lib/neural-graph-builder';
 
@@ -17,6 +19,7 @@ export function NeuralHomePage({ initialGraph, tagPostLinks }: NeuralHomePagePro
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [highlightedPosts, setHighlightedPosts] = useState<string[]>([]);
   const [isChatCollapsed, setIsChatCollapsed] = useSessionStorage('chat-collapsed', true);
+  const palette = NEURAL_PALETTES[useNeuralPalette()];
   const [navigatingPostId, setNavigatingPostId] = useState<string | null>(null);
 
   const handleNodeClick = useCallback((node: NeuralNode) => {
@@ -63,6 +66,7 @@ export function NeuralHomePage({ initialGraph, tagPostLinks }: NeuralHomePagePro
         onBackgroundClick={handleBackgroundClick}
         tagPostLinks={tagPostLinks}
         navigatingPostId={navigatingPostId}
+        palette={palette}
       />
 
       <CenterCard

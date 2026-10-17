@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { TagWithPostCount } from '@/types/database';
+import { tagColor, tagMix } from '@/lib/tag-color';
 
 export default function TagsPage() {
   const [tags, setTags] = useState<TagWithPostCount[]>([]);
@@ -321,7 +322,7 @@ export default function TagsPage() {
                       <td className="px-6 py-3">
                         <span
                           className="w-6 h-6 rounded-full inline-block"
-                          style={{ backgroundColor: tag.color }}
+                          style={{ backgroundColor: tagColor(tag.color) }}
                         />
                       </td>
                       <td
@@ -331,9 +332,9 @@ export default function TagsPage() {
                         <span
                           className="inline-flex items-center px-3 py-1 rounded-full"
                           style={{
-                            backgroundColor: `${tag.color}20`,
-                            color: tag.color,
-                            border: `1px solid ${tag.color}40`,
+                            backgroundColor: tagMix(tag.color, 13),
+                            color: tagColor(tag.color),
+                            border: `1px solid ${tagMix(tag.color, 25)}`,
                           }}
                         >
                           {tag.name}

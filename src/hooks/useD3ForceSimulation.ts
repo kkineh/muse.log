@@ -9,6 +9,8 @@ export interface UseD3ForceSimulationOptions {
   height?: number;
   centerX?: number;
   centerY?: number;
+  fitToView?: boolean;
+  minZoom?: number;
 }
 
 export interface DragHandlers {
@@ -28,6 +30,7 @@ export interface UseD3ForceSimulationReturn {
   simulation: d3.Simulation<NeuralNode, undefined> | null;
   dragHandlers: DragHandlers;
   transform: ZoomTransform;
+  fitted: boolean;
 }
 
 interface D3Link {
@@ -49,13 +52,15 @@ export function useD3ForceSimulation(
   gRef: RefObject<SVGGElement | null>,
   options: UseD3ForceSimulationOptions = {}
 ): UseD3ForceSimulationReturn {
-  const { centerX = 0, centerY = 0 } = options;
+  const { centerX = 0, centerY = 0, fitToView = false, minZoom = 0.3 } = options;
 
   const [nodes, setNodes] = useState<NeuralNode[]>(initialNodes);
   const [transform, setTransform] = useState<ZoomTransform>({ x: 0, y: 0, k: 1 });
   const simulationRef = useRef<d3.Simulation<NeuralNode, undefined> | null>(null);
   const rafRef = useRef<number | null>(null);
   const nodesRef = useRef<NeuralNode[]>(initialNodes);
+  const fitRef = useRef<() => void>(() => {});
+  const [fitted, setFitted] = useState(!fitToView);
 
   // Force simulation
   useEffect(() => {
@@ -123,6 +128,15 @@ export function useD3ForceSimulation(
       }
     });
 
+    // 미니맵: 첫 화면부터 정착된 배치로 보이도록 시뮬레이션을 미리 끝까지 돌린다
+    if (fitToView) {
+      simulation.stop();
+      const ticks = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()));
+      for (let i = 0; i < ticks; i++) simulation.tick();
+      nodesRef.current = clonedNodes;
+      setNodes([...clonedNodes]);
+    }
+
     simulation.on('end', () => {
       nodesRef.current = clonedNodes;
       setNodes([...clonedNodes]);
@@ -136,7 +150,7 @@ export function useD3ForceSimulation(
       simulation.stop();
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [initialNodes, links, centerX, centerY]);
+  }, [initialNodes, links, centerX, centerY, fitToView]);
 
   // D3 zoom — bound directly to SVG element (non-passive, smooth)
   useEffect(() => {
@@ -154,7 +168,7 @@ export function useD3ForceSimulation(
     const initialTransform = d3Zoom.zoomIdentity.translate(W / 2, H / 2);
 
     const zoom = d3Zoom.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.3, 2.5])
+      .scaleExtent([minZoom, 2.5])
       .on('zoom', (e) => {
         g.attr('transform', e.transform.toString());
         setTransform({ x: e.transform.x, y: e.transform.y, k: e.transform.k });
@@ -163,8 +177,36 @@ export function useD3ForceSimulation(
     svg.call(zoom);
     svg.call(zoom.transform, initialTransform);
 
+    // 컨테이너 안에 그래프 전체가 들어오도록 줌/위치를 맞춘다 (미니맵 전용)
+    fitRef.current = () => {
+      const ns = nodesRef.current;
+      const cw = svgEl.clientWidth;
+      const ch = svgEl.clientHeight;
+      if (!ns.length || !cw || !ch) return;
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const n of ns) {
+        const hw = (n.w || 60) / 2;
+        const hh = (n.h || 28) / 2;
+        x0 = Math.min(x0, (n.x || 0) - hw);
+        x1 = Math.max(x1, (n.x || 0) + hw);
+        y0 = Math.min(y0, (n.y || 0) - hh);
+        y1 = Math.max(y1, (n.y || 0) + hh);
+      }
+      const pad = 16;
+      const k = Math.min(2.5, Math.max(minZoom, Math.min((cw - pad * 2) / (x1 - x0), (ch - pad * 2) / (y1 - y0))));
+      svg.call(
+        zoom.transform,
+        d3Zoom.zoomIdentity.translate(cw / 2 - ((x0 + x1) / 2) * k, ch / 2 - ((y0 + y1) / 2) * k).scale(k)
+      );
+    };
+    if (fitToView) {
+      fitRef.current();
+      setFitted(true);
+    }
+
     // Update on resize
     const onResize = () => {
+      if (fitToView) return;
       const nW = window.innerWidth;
       const nH = window.innerHeight;
       svgEl.setAttribute('width', String(nW));
@@ -175,11 +217,18 @@ export function useD3ForceSimulation(
     };
     window.addEventListener('resize', onResize);
 
+    let resizeObserver: ResizeObserver | undefined;
+    if (fitToView && svgEl.parentElement) {
+      resizeObserver = new ResizeObserver(() => fitRef.current());
+      resizeObserver.observe(svgEl.parentElement);
+    }
+
     return () => {
       svg.on('.zoom', null);
       window.removeEventListener('resize', onResize);
+      resizeObserver?.disconnect();
     };
-  }, [svgRef, gRef]);
+  }, [svgRef, gRef, fitToView, minZoom]);
 
   // Drag handlers
   const dragHandlers: DragHandlers = {
@@ -215,5 +264,6 @@ export function useD3ForceSimulation(
     simulation: simulationRef.current,
     dragHandlers,
     transform,
+    fitted,
   };
 }

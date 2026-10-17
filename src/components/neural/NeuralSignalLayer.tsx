@@ -2,6 +2,7 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import type { NeuralNode } from '@/lib/neural-graph-builder';
+import { hexA, type NeuralPalette } from '@/lib/neural-palettes';
 
 export interface SignalLayerHandle {
   emit: (x: number, y: number) => void;
@@ -18,6 +19,7 @@ interface NeuralSignalLayerProps {
   nodes: NeuralNode[];
   links: SignalLink[];
   transform: { x: number; y: number; k: number };
+  palette: NeuralPalette;
 }
 
 const SPEED = 220; // 점 사이 전파 속도 (px/s)
@@ -29,7 +31,7 @@ const DOT_HOP = 0.7; // 점 → 노드 이동 시간 (s)
 const EDGE_HOP = 1.0; // 노드 → 노드 이동 시간 (s)
 const NODE_HOPS = 2; // 노드에서 시냅스를 따라 번지는 단계 수
 const DECAY = 0.9;
-const AUTO_MS = 5000;
+const AUTO_MS = 3000;
 const DOT_LINK_R = 110; // 점끼리 연결선이 생기는 최대 거리 (px)
 const DOT_LINK_N = 3; // 점 하나가 이어지는 가까운 점 수
 const DOT_AREA = 5600; // 점 하나당 화면 면적 (px²)
@@ -45,18 +47,15 @@ interface SNode {
 
 interface Wave { seen: Set<string>; touched: Set<string>; seenDots: Set<number>; toNodes: boolean }
 
-function nodeColor(n: NeuralNode): string {
+function nodeColor(n: NeuralNode, palette: NeuralPalette): string {
   const depth = n.level || 3;
-  if (depth === 1) return '#00FFC8';
-  if (depth === 2) return '#a78bfa';
-  if (depth === 3 && n.type === 'subcategory') return '#facc15';
+  if (depth === 1) return palette.cat;
+  if (depth === 2) return palette.sub;
+  if (depth === 3 && n.type === 'subcategory') return palette.sub3;
   return '#ffffff';
 }
 
-function rgba(hex: string, a: number): string {
-  const v = parseInt(hex.slice(1), 16);
-  return `rgba(${v >> 16},${(v >> 8) & 255},${v & 255},${a})`;
-}
+const rgba = hexA;
 
 function glow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, a: number) {
   const g = ctx.createRadialGradient(x, y, 0, x, y, r);
@@ -93,15 +92,15 @@ function borderSegment(A: SNode, B: SNode) {
 const edgeKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
 export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayerProps>(function NeuralSignalLayer(
-  { nodes, links, transform },
+  { nodes, links, transform, palette },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const propsRef = useRef({ nodes, links, transform });
+  const propsRef = useRef({ nodes, links, transform, palette });
   const emitRef = useRef<(x: number, y: number) => void>(() => {});
 
   useEffect(() => {
-    propsRef.current = { nodes, links, transform };
+    propsRef.current = { nodes, links, transform, palette };
   });
 
   useImperativeHandle(ref, () => ({ emit: (x, y) => emitRef.current(x, y) }), []);
@@ -187,12 +186,16 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
     let adj = new Map<string, string[]>();
     let edgeColor = new Map<string, string>();
     let k = 1;
+    let sig = propsRef.current.palette.signal;
+    let dotColor = propsRef.current.palette.dot;
     let nextAuto = performance.now() + AUTO_MS;
     let last = performance.now();
     let raf = 0;
 
     const refreshGraph = () => {
-      const { nodes: ns, links: ls, transform: t } = propsRef.current;
+      const { nodes: ns, links: ls, transform: t, palette: pal } = propsRef.current;
+      sig = pal.signal;
+      dotColor = pal.dot;
       k = t.k;
       tr.x = t.x;
       tr.y = t.y;
@@ -206,7 +209,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
             y: t.y + (n.y || 0) * t.k,
             hw: ((n.w || 60) / 2) * t.k,
             hh: ((n.h || 28) / 2) * t.k,
-            color: nodeColor(n),
+            color: nodeColor(n, pal),
           },
         ])
       );
@@ -216,7 +219,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
         if (l.isTagLink) continue;
         (adj.get(l.source) ?? adj.set(l.source, []).get(l.source)!).push(l.target);
         (adj.get(l.target) ?? adj.set(l.target, []).get(l.target)!).push(l.source);
-        edgeColor.set(edgeKey(l.source, l.target), l.depth === 3 ? '#fde047' : '#00FFC8');
+        edgeColor.set(edgeKey(l.source, l.target), l.depth === 3 ? pal.sub3 : pal.cat);
       }
     };
 
@@ -328,7 +331,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
           if (other && nk < key) continue;
           const l = (cur.l + (other?.l ?? 0)) / 2;
           if (l < 0.03) continue;
-          ctx.strokeStyle = rgba('#00FFC8', 0.22 * l);
+          ctx.strokeStyle = rgba(sig, 0.22 * l);
           ctx.beginPath();
           ctx.moveTo(x, y);
           ctx.lineTo(tr.x + (dots[nb.j].wx + nmx * TW) * tr.k, tr.y + (dots[nb.j].wy + nmy * TH) * tr.k);
@@ -342,11 +345,11 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
         const l = litDots.get(dotKey(i, mx, my))?.l ?? 0;
         if (l > 0.05) {
           ctx.globalCompositeOperation = 'lighter';
-          glow(ctx, x, y, 8 + l * 8, '#00FFC8', l * 0.3);
+          glow(ctx, x, y, 8 + l * 8, sig, l * 0.3);
           ctx.globalCompositeOperation = 'source-over';
         }
         const tw = reduceMotion ? 1 : 0.8 + 0.2 * Math.sin(t * d.sp + d.tw);
-        ctx.fillStyle = `rgba(170,235,255,${Math.min(1, d.a * tw + l * 0.45)})`;
+        ctx.fillStyle = rgba(dotColor, Math.min(1, d.a * tw + l * 0.45));
         ctx.beginPath();
         ctx.arc(x, y, d.r + l * 0.8, 0, Math.PI * 2);
         ctx.fill();
@@ -367,7 +370,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
         const bx = tr.x + (dots[g.bi].wx + g.bmx * TW) * tr.k;
         const by = tr.y + (dots[g.bi].wy + g.bmy * TH) * tr.k;
         ctx.globalCompositeOperation = 'lighter';
-        glow(ctx, ax + (bx - ax) * u, ay + (by - ay) * u, 5, '#00FFC8', 0.45 * g.p);
+        glow(ctx, ax + (bx - ax) * u, ay + (by - ay) * u, 5, sig, 0.45 * g.p);
         ctx.globalCompositeOperation = 'source-over';
       }
 
@@ -388,14 +391,14 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
         const x = g.x + (ex - g.x) * e;
         const y = g.y + (ey - g.y) * e;
         const fade = 1 - u;
-        ctx.strokeStyle = rgba('#00FFC8', 0.1 * g.p * fade);
+        ctx.strokeStyle = rgba(sig, 0.1 * g.p * fade);
         ctx.lineWidth = 0.8;
         ctx.beginPath();
         ctx.moveTo(g.x, g.y);
         ctx.lineTo(ex, ey);
         ctx.stroke();
         ctx.globalCompositeOperation = 'lighter';
-        glow(ctx, x, y, 6, '#00FFC8', 0.5 * g.p * fade);
+        glow(ctx, x, y, 6, sig, 0.5 * g.p * fade);
         ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = `rgba(255,255,255,${0.7 * g.p * fade})`;
         ctx.beginPath();
@@ -413,7 +416,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
         if (l <= 0.01) { litE.delete(key); return; }
         const seg = borderSegment(A, B);
         if (!seg) return;
-        ctx.strokeStyle = rgba(edgeColor.get(key) ?? '#00FFC8', 0.35 * l);
+        ctx.strokeStyle = rgba(edgeColor.get(key) ?? sig, 0.35 * l);
         ctx.lineWidth = 0.8 + l * 0.4;
         ctx.beginPath();
         ctx.moveTo(seg.x1, seg.y1);
@@ -432,7 +435,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
         if (!seg) { sigs.splice(i, 1); continue; }
         const ease = 1 - (1 - u) * (1 - u);
         const fade = 1 - u;
-        const col = edgeColor.get(edgeKey(s.a, s.b)) ?? '#00FFC8';
+        const col = edgeColor.get(edgeKey(s.a, s.b)) ?? sig;
         const at = (q: number) => ({ x: seg.x1 + (seg.x2 - seg.x1) * q, y: seg.y1 + (seg.y2 - seg.y1) * q });
         ctx.globalCompositeOperation = 'lighter';
         for (let j = 0; j < 4; j++) {

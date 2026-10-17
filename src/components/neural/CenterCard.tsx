@@ -123,10 +123,10 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
           {!isCollapsed && (
             <button
               onClick={onCollapse}
-              className="absolute top-4 right-4 z-20 p-2 rounded-lg hover:bg-[rgba(0,255,200,0.1)] transition-colors"
+              className="absolute top-4 right-4 z-20 p-2 rounded-lg hover:bg-[rgb(255_255_255/0.1)] transition-colors"
               aria-label="Minimize chat"
             >
-              <Minimize2 size={20} style={{ color: 'var(--neural-accent)' }} />
+              <Minimize2 size={20} style={{ color: 'var(--neural-text-primary)' }} />
             </button>
           )}
 
@@ -163,7 +163,7 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
                 <span>About</span>
               </Link>
               <a
-                href="https://github.com/hanHappy"
+                href="https://github.com/kkineh"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-sm hover:text-[var(--neural-accent)] transition-colors"
@@ -174,18 +174,6 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
               </a>
             </div>
           </div>
-        )}
-
-        {!isCollapsed && (
-          <div
-            className="mx-8 mb-4"
-            style={{
-              height: '1px',
-              background:
-                'linear-gradient(90deg, transparent, var(--neural-border-glow), transparent)',
-              opacity: 0.3,
-            }}
-          />
         )}
 
         {/* Chat History - hide when collapsed */}
@@ -224,13 +212,13 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
               <div className="flex justify-start mb-4">
                 <div className="px-4 py-3 rounded-2xl bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)]">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 rounded-full bg-[#00FFC8] animate-pulse" />
+                    <div className="w-2 h-2 rounded-full bg-[var(--neural-accent)] animate-pulse" />
                     <div
-                      className="w-2 h-2 rounded-full bg-[#00FFC8] animate-pulse"
+                      className="w-2 h-2 rounded-full bg-[var(--neural-accent)] animate-pulse"
                       style={{ animationDelay: '0.2s' }}
                     />
                     <div
-                      className="w-2 h-2 rounded-full bg-[#00FFC8] animate-pulse"
+                      className="w-2 h-2 rounded-full bg-[var(--neural-accent)] animate-pulse"
                       style={{ animationDelay: '0.4s' }}
                     />
                   </div>
@@ -238,18 +226,6 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
               </div>
             )}
           </div>
-
-        {!isCollapsed && (
-          <div
-            className="mx-8 mb-4"
-            style={{
-              height: '1px',
-              background:
-                'linear-gradient(90deg, transparent, var(--neural-border-glow), transparent)',
-              opacity: 0.3,
-            }}
-          />
-        )}
 
         {/* Input */}
         <div className={isCollapsed ? 'p-4' : 'p-8 pt-0'}>
@@ -261,7 +237,7 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
               onFocus={handleInputFocus}
               placeholder="무엇이든 물어보세요..."
               disabled={isProcessing}
-              className="w-full px-4 py-3 pr-12 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] focus:outline-none transition-colors"
+              className="w-full px-4 py-3 pr-12 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[var(--neural-line)] focus:outline-none transition-colors"
               style={{
                 color: 'var(--neural-text-primary)',
                 fontSize: '14px',
@@ -270,9 +246,9 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
             <button
               type="submit"
               disabled={isProcessing || !inputValue.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-[rgba(0,255,200,0.1)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-[rgb(255_255_255/0.1)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <Send size={18} style={{ color: 'var(--neural-accent)' }} />
+              <Send size={18} style={{ color: 'var(--neural-text-primary)' }} />
             </button>
           </form>
         </div>

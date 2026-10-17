@@ -1,5 +1,7 @@
 'use client';
 
+import { tagColor } from '@/lib/tag-color';
+
 interface Props {
   data: { name: string; color: string; post_count: number }[];
 }
@@ -22,7 +24,7 @@ export default function PopularTags({ data }: Props) {
             <div key={tag.name} className="flex items-center gap-3">
               <span
                 className="w-3 h-3 rounded-full flex-shrink-0"
-                style={{ background: tag.color }}
+                style={{ background: tagColor(tag.color) }}
               />
               <span
                 className="text-sm flex-shrink-0 w-24 truncate"
@@ -35,7 +37,7 @@ export default function PopularTags({ data }: Props) {
                   className="h-full rounded-full transition-all"
                   style={{
                     width: `${(tag.post_count / maxCount) * 100}%`,
-                    background: tag.color,
+                    background: tagColor(tag.color),
                     opacity: 0.7,
                   }}
                 />

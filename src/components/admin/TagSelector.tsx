@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import type { Tag } from '@/types/database';
+import { tagColor, tagMix } from '@/lib/tag-color';
 
 interface TagSelectorProps {
   selectedTagIds: string[];
@@ -127,9 +128,9 @@ export default function TagSelector({ selectedTagIds, onChange }: TagSelectorPro
             key={tag.id}
             className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm"
             style={{
-              backgroundColor: `${tag.color}20`,
-              color: tag.color,
-              border: `1px solid ${tag.color}40`,
+              backgroundColor: tagMix(tag.color, 13),
+              color: tagColor(tag.color),
+              border: `1px solid ${tagMix(tag.color, 25)}`,
             }}
           >
             {tag.name}
@@ -188,7 +189,7 @@ export default function TagSelector({ selectedTagIds, onChange }: TagSelectorPro
             >
               <span
                 className="w-3 h-3 rounded-full inline-block"
-                style={{ backgroundColor: tag.color }}
+                style={{ backgroundColor: tagColor(tag.color) }}
               />
               {tag.name}
             </button>

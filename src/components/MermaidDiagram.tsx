@@ -16,6 +16,10 @@ export default function MermaidDiagram({ chart }: MermaidDiagramProps) {
     const render = async () => {
       try {
         const mermaid = (await import('mermaid')).default;
+        const css = getComputedStyle(document.documentElement);
+        const accent = css.getPropertyValue('--neural-accent').trim() || '#38BDF8';
+        const sub = css.getPropertyValue('--neural-node-sub').trim() || '#8B5CF6';
+        const accentRgb = (css.getPropertyValue('--accent-rgb').trim() || '56 189 248').split(' ').join(',');
         mermaid.initialize({
           startOnLoad: false,
           theme: 'base',
@@ -24,14 +28,14 @@ export default function MermaidDiagram({ chart }: MermaidDiagramProps) {
           themeVariables: {
             primaryColor: '#0a0e16',
             primaryTextColor: '#E2E8F0',
-            primaryBorderColor: '#00FFC8',
-            lineColor: '#A78BFA',
+            primaryBorderColor: accent,
+            lineColor: sub,
             secondaryColor: '#0a0e16',
             tertiaryColor: '#0a0e16',
             background: '#080B10',
             mainBkg: '#0a0e16',
-            nodeBorder: '#00FFC8',
-            clusterBkg: 'rgba(0,255,200,0.03)',
+            nodeBorder: accent,
+            clusterBkg: `rgba(${accentRgb},0.03)`,
             titleColor: '#6B7280',
             edgeLabelBackground: '#0a0e16',
             fontFamily: 'IBM Plex Mono, monospace',

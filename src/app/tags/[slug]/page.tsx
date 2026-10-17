@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
 import { createClient } from '@/lib/supabase-server';
+import { tagColor, tagMix } from '@/lib/tag-color';
 
 export const revalidate = 86400;
 export const dynamicParams = false;
@@ -162,9 +163,9 @@ export default async function TagPage({ params }: PageProps) {
           <span
             className="inline-block px-4 py-2 rounded-full text-lg font-medium mb-4"
             style={{
-              backgroundColor: `${tag.color}15`,
-              color: tag.color,
-              border: `1px solid ${tag.color}40`,
+              backgroundColor: tagMix(tag.color, 8),
+              color: tagColor(tag.color),
+              border: `1px solid ${tagMix(tag.color, 25)}`,
               fontFamily: 'var(--font-space-grotesk), sans-serif',
             }}
           >
@@ -200,9 +201,9 @@ export default async function TagPage({ params }: PageProps) {
                   href={`/tags/${rt.slug}`}
                   className="inline-flex items-center px-3 py-1 rounded-full text-sm transition-all hover:scale-105"
                   style={{
-                    backgroundColor: `${rt.color}15`,
-                    color: rt.color,
-                    border: `1px solid ${rt.color}40`,
+                    backgroundColor: tagMix(rt.color, 8),
+                    color: tagColor(rt.color),
+                    border: `1px solid ${tagMix(rt.color, 25)}`,
                     fontFamily: 'var(--font-ibm-plex-mono), monospace',
                     fontSize: '12px',
                   }}
@@ -220,10 +221,10 @@ export default async function TagPage({ params }: PageProps) {
             <Link
               key={p.slug}
               href={`/posts/${p.slug}`}
-              className="block p-6 rounded-2xl border transition-all hover:shadow-[0_0_30px_rgba(0,255,200,0.15)]"
+              className="block p-6 rounded-2xl border transition-all hover:shadow-[0_0_30px_rgb(var(--accent-rgb)/0.15)]"
               style={{
-                borderColor: `${tag.color}30`,
-                background: `${tag.color}05`,
+                borderColor: tagMix(tag.color, 19),
+                background: tagMix(tag.color, 2),
               }}
             >
               <h3

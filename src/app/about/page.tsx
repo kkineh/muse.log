@@ -74,8 +74,8 @@ export default function AboutPage() {
           <motion.div
             className="h-full rounded-full"
             style={{
-              background: 'linear-gradient(90deg, #00FFC8, #A78BFA)',
-              boxShadow: '0 0 10px #00FFC8',
+              background: 'linear-gradient(90deg, var(--neural-accent), var(--neural-node-sub))',
+              boxShadow: '0 0 10px var(--neural-accent)',
             }}
             initial={{ width: 0 }}
             animate={{ width: `${scrollProgress}%` }}
@@ -110,7 +110,7 @@ export default function AboutPage() {
               className="w-20 h-20 rounded-full mb-6 overflow-hidden border"
               style={{
                 borderColor: 'var(--neural-border-glow)',
-                boxShadow: '0 0 20px rgba(0, 255, 200, 0.15)',
+                boxShadow: '0 0 20px rgb(var(--accent-rgb) / 0.15)',
               }}
             >
               <Image
@@ -220,7 +220,7 @@ export default function AboutPage() {
                         className="text-xs px-2.5 py-1 rounded-md border"
                         style={{
                           background: 'var(--neural-card)',
-                          borderColor: 'rgba(0, 255, 200, 0.2)',
+                          borderColor: 'rgb(var(--accent-rgb) / 0.2)',
                           color: 'var(--neural-text-primary)',
                         }}
                       >
@@ -247,8 +247,8 @@ export default function AboutPage() {
                   key={item}
                   className="text-sm px-3 py-1.5 rounded-full border"
                   style={{
-                    background: 'rgba(0, 255, 200, 0.05)',
-                    borderColor: 'rgba(0, 255, 200, 0.2)',
+                    background: 'rgb(var(--accent-rgb) / 0.05)',
+                    borderColor: 'rgb(var(--accent-rgb) / 0.2)',
                     color: 'var(--neural-text-muted)',
                   }}
                 >

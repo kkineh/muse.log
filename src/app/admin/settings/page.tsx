@@ -1,6 +1,11 @@
 'use client';
 
+import { NEURAL_PALETTES } from '@/lib/neural-palettes';
+import { setNeuralPalette, useNeuralPalette } from '@/hooks/useNeuralPalette';
+
 export default function SettingsPage() {
+  const paletteIndex = useNeuralPalette();
+
   return (
     <div>
       <h1
@@ -9,6 +14,45 @@ export default function SettingsPage() {
       >
         Blog Settings
       </h1>
+
+      <div className="card p-6 mb-6">
+        <h2
+          className="text-xl font-semibold mb-2"
+          style={{ color: 'var(--text-primary)' }}
+        >
+          Theme Color
+        </h2>
+        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+          선택한 색은 이 브라우저에 저장됩니다.
+        </p>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+          {NEURAL_PALETTES.map((p, i) => {
+            const selected = i === paletteIndex;
+            return (
+              <button
+                key={p.name}
+                type="button"
+                onClick={() => setNeuralPalette(i)}
+                className="rounded-xl p-3 text-left transition-all"
+                style={{
+                  border: `1px solid ${selected ? p.cat : 'var(--border-color)'}`,
+                  background: selected ? 'var(--bg-tertiary)' : 'transparent',
+                  boxShadow: selected ? `0 0 0 1px ${p.cat}` : 'none',
+                }}
+              >
+                <div className="mb-2 flex gap-1.5">
+                  {[p.cat, p.sub, p.sub3, p.signal].map((c, k) => (
+                    <span key={k} className="h-4 w-4 rounded-full" style={{ background: c }} />
+                  ))}
+                </div>
+                <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                  {i + 1}. {p.name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="card p-6">
         <h2

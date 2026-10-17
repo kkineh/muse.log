@@ -199,7 +199,7 @@ export default async function CategoryPage({ params }: PageProps) {
           style={{
             color: 'var(--neural-text-primary)',
             fontFamily: 'var(--font-space-grotesk), sans-serif',
-            textShadow: '0 0 30px rgba(0, 255, 200, 0.15)',
+            textShadow: '0 0 30px rgb(var(--accent-rgb) / 0.15)',
           }}
         >
           {category.name}
@@ -245,9 +245,9 @@ export default async function CategoryPage({ params }: PageProps) {
                   href={`/category/${sub.slug}`}
                   className="inline-flex items-center px-3 py-1 rounded-full text-sm transition-all hover:scale-105"
                   style={{
-                    backgroundColor: 'rgba(0, 255, 200, 0.08)',
+                    backgroundColor: 'rgb(var(--accent-rgb) / 0.08)',
                     color: 'var(--neural-accent)',
-                    border: '1px solid rgba(0, 255, 200, 0.25)',
+                    border: '1px solid rgb(var(--accent-rgb) / 0.25)',
                     fontFamily: 'var(--font-ibm-plex-mono), monospace',
                     fontSize: '12px',
                   }}
@@ -266,10 +266,10 @@ export default async function CategoryPage({ params }: PageProps) {
               <Link
                 key={post.slug}
                 href={`/posts/${post.slug}`}
-                className="block p-6 rounded-2xl border transition-all hover:shadow-[0_0_30px_rgba(0,255,200,0.15)]"
+                className="block p-6 rounded-2xl border transition-all hover:shadow-[0_0_30px_rgb(var(--accent-rgb)/0.15)]"
                 style={{
-                  borderColor: 'rgba(0, 255, 200, 0.15)',
-                  background: 'rgba(0, 255, 200, 0.03)',
+                  borderColor: 'rgb(var(--accent-rgb) / 0.15)',
+                  background: 'rgb(var(--accent-rgb) / 0.03)',
                 }}
               >
                 <h3

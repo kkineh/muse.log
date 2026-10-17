@@ -3,6 +3,7 @@ import { decodeSlug, isValidSlug } from '@/lib/slug';
 import type { Metadata } from 'next';
 import { createBrowserClient } from '@supabase/ssr';
 import { createClient, isAdmin } from '@/lib/supabase-server';
+import { getNeuralGraphProps } from '@/lib/neural-graph-data';
 import PostDetailView from '@/components/PostDetailView';
 
 // ISR: 24시간마다 재검증
@@ -159,6 +160,8 @@ export default async function PostPage({ params }: PageProps) {
     categoryBreadcrumb = chain;
   }
 
+  const { graph, tagPostLinks } = await getNeuralGraphProps();
+
   return (
     <PostDetailView
       post={{
@@ -174,6 +177,8 @@ export default async function PostPage({ params }: PageProps) {
       nextPost={nextPost}
       isDraft={isDraft}
       isAdmin={admin}
+      graph={graph}
+      tagPostLinks={tagPostLinks}
     />
   );
 }

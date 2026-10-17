@@ -13,6 +13,9 @@ import dynamic from 'next/dynamic';
 import TableOfContents from '@/components/TableOfContents';
 import AdminToolbar from '@/components/AdminToolbar';
 import NeuralFooter from '@/components/NeuralFooter';
+import { NeuralMiniMap } from '@/components/neural/NeuralMiniMap';
+import type { NeuralGraphData } from '@/lib/neural-graph-builder';
+import { tagColor, tagMix } from '@/lib/tag-color';
 
 const MermaidDiagram = dynamic(() => import('@/components/MermaidDiagram'), { ssr: false });
 
@@ -44,6 +47,8 @@ interface PostDetailViewProps {
   nextPost: RelatedPost | null;
   isDraft?: boolean;
   isAdmin?: boolean;
+  graph?: NeuralGraphData;
+  tagPostLinks?: { source: string; target: string; sharedCount: number }[];
 }
 
 export default function PostDetailView({
@@ -54,6 +59,8 @@ export default function PostDetailView({
   nextPost,
   isDraft = false,
   isAdmin = false,
+  graph,
+  tagPostLinks,
 }: PostDetailViewProps) {
   const router = useRouter();
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -208,7 +215,7 @@ export default function PostDetailView({
         <svg className="absolute inset-0 w-full h-full opacity-10">
           <defs>
             <pattern id="post-grid" width="50" height="50" patternUnits="userSpaceOnUse">
-              <circle cx="25" cy="25" r="1" fill="#00FFC8" opacity="0.3" />
+              <circle cx="25" cy="25" r="1" fill="var(--neural-accent)" opacity="0.3" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#post-grid)" />
@@ -231,8 +238,8 @@ export default function PostDetailView({
           <div
             className="w-2 h-2 rounded-full"
             style={{
-              background: '#00FFC8',
-              boxShadow: '0 0 20px #00FFC8',
+              background: 'var(--neural-accent)',
+              boxShadow: '0 0 20px var(--neural-accent)',
             }}
           />
         </motion.div>
@@ -268,23 +275,15 @@ export default function PostDetailView({
           <motion.div
             className="h-full rounded-full"
             style={{
-              background: 'linear-gradient(90deg, #00FFC8, #A78BFA)',
-              boxShadow: '0 0 10px #00FFC8',
+              background: 'linear-gradient(90deg, var(--neural-accent), var(--neural-node-sub))',
+              boxShadow: '0 0 10px var(--neural-accent)',
             }}
             initial={{ width: 0 }}
             animate={{ width: `${scrollProgress}%` }}
           />
         </div>
 
-        <div
-          className="text-sm"
-          style={{
-            color: 'var(--neural-text-muted)',
-            fontFamily: 'var(--font-ibm-plex-mono), monospace',
-          }}
-        >
-          {Math.round(scrollProgress)}%
-        </div>
+        {isAdmin ? <AdminToolbar slug={post.slug} /> : <div className="w-[190px]" />}
 
       </motion.div>
 
@@ -362,7 +361,7 @@ export default function PostDetailView({
               fontFamily: 'var(--font-space-grotesk), sans-serif',
               color: 'var(--neural-text-primary)',
               fontWeight: 700,
-              textShadow: '0 0 30px rgba(0, 255, 200, 0.3)',
+              textShadow: '0 0 30px rgb(var(--accent-rgb) / 0.3)',
             }}
           >
             {post.title}
@@ -399,9 +398,9 @@ export default function PostDetailView({
                   onClick={() => router.push(`/tags/${tag.slug}`)}
                   className="inline-flex items-center px-3 py-1 rounded-full text-sm transition-all hover:scale-105"
                   style={{
-                    backgroundColor: `${tag.color}15`,
-                    color: tag.color,
-                    border: `1px solid ${tag.color}40`,
+                    backgroundColor: tagMix(tag.color, 8),
+                    color: tagColor(tag.color),
+                    border: `1px solid ${tagMix(tag.color, 25)}`,
                     fontFamily: 'var(--font-ibm-plex-mono), monospace',
                     fontSize: '12px',
                   }}
@@ -441,17 +440,17 @@ export default function PostDetailView({
                 className="flex-1 text-left"
               >
                 <div
-                  className="p-6 rounded-2xl border transition-all hover:shadow-[0_0_30px_rgba(0,255,200,0.3)]"
+                  className="p-6 rounded-2xl border transition-all hover:shadow-[0_0_30px_rgb(var(--accent-rgb)/0.3)]"
                   style={{
-                    borderColor: '#00FFC840',
-                    background: 'rgba(0, 255, 200, 0.05)',
+                    borderColor: 'var(--border-color)',
+                    background: 'rgb(var(--accent-rgb) / 0.05)',
                     backdropFilter: 'blur(10px)',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#00FFC8';
+                    e.currentTarget.style.borderColor = 'var(--neural-accent)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#00FFC840';
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
                   }}
                 >
                   <div
@@ -576,14 +575,14 @@ export default function PostDetailView({
         <NeuralFooter />
       </motion.div>
 
+      {graph && <NeuralMiniMap key={post.slug} graph={graph} tagPostLinks={tagPostLinks} currentSlug={post.slug} />}
+
       {/* Table of Contents (right side) */}
       <TableOfContents
         content={post.content}
         scrollContainerRef={contentRef}
       />
 
-      {/* Admin toolbar (bottom-right) */}
-      {isAdmin && <AdminToolbar slug={post.slug} />}
     </motion.div>
   );
 }

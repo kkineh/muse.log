@@ -7,11 +7,14 @@
 
 import { useEffect, useState } from 'react';
 
+const ACTIVE_OFFSET = 160;
+
 /**
- * Tracks the currently visible heading ID using IntersectionObserver
+ * Tracks the active heading from the scroll position, so headings are activated
+ * one by one while the container scrolls past them (including smooth scrolls).
  *
  * @param headingIds - Array of heading IDs to track
- * @param root - Optional scroll container element for IntersectionObserver root
+ * @param root - Scroll container element
  * @returns The ID of the currently active heading
  */
 export function useScrollSpy(
@@ -21,29 +24,34 @@ export function useScrollSpy(
   const [activeId, setActiveId] = useState('');
 
   useEffect(() => {
-    if (headingIds.length === 0) return;
+    if (headingIds.length === 0 || !root) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
-          }
-        });
-      },
-      {
-        root: root ?? null,
-        rootMargin: '-80px 0px -80% 0px',
-        threshold: 0.1,
+    let frame = 0;
+
+    const update = () => {
+      frame = 0;
+      const top = root.getBoundingClientRect().top;
+      const atBottom = root.scrollTop + root.clientHeight >= root.scrollHeight - 2;
+      let current = '';
+      for (const id of headingIds) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top - top <= ACTIVE_OFFSET + 10) current = id;
       }
-    );
+      if (atBottom && root.scrollTop > 0) current = headingIds[headingIds.length - 1];
+      setActiveId(current);
+    };
 
-    headingIds.forEach((id) => {
-      const element = document.getElementById(id);
-      if (element) observer.observe(element);
-    });
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
 
-    return () => observer.disconnect();
+    update();
+    root.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      root.removeEventListener('scroll', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [headingIds, root]);
 
   return activeId;

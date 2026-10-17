@@ -4,7 +4,7 @@ export default function NeuralFooter() {
   return (
     <footer
       className="w-full mt-24 py-4 px-6"
-      style={{ borderTop: '1px solid rgba(0, 255, 200, 0.15)' }}
+      style={{ borderTop: '1px solid rgb(var(--accent-rgb) / 0.15)' }}
     >
       <div className="max-w-2xl mx-auto flex items-center justify-between">
         <p className="text-sm" style={{ color: 'var(--neural-text-muted)' }}>
@@ -12,7 +12,7 @@ export default function NeuralFooter() {
         </p>
         <div className="flex items-center gap-4">
           <a
-            href="https://github.com/hanHappy"
+            href="https://github.com/kkineh"
             target="_blank"
             rel="noopener noreferrer"
             className="transition-colors hover:text-[var(--neural-accent)]"
