@@ -4,6 +4,7 @@ import { useMemo, useRef, useEffect, useCallback, useState } from 'react';
 import * as d3Selection from 'd3-selection';
 import * as d3Drag from 'd3-drag';
 import { useD3ForceSimulation } from '@/hooks/useD3ForceSimulation';
+import { NeuralSignalLayer, type SignalLayerHandle } from './NeuralSignalLayer';
 import { flattenNeuralGraph } from '@/lib/neural-graph-builder';
 import type { NeuralNode } from '@/lib/neural-graph-builder';
 
@@ -69,10 +70,12 @@ export function NeuralNetwork({
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
   const nodesGRef = useRef<SVGGElement>(null);
+  const signalRef = useRef<SignalLayerHandle>(null);
 
   const {
     nodes: allNodes,
     dragHandlers,
+    transform,
   } = useD3ForceSimulation(initialNodes, links, svgRef, gRef, {
     centerX: 0,
     centerY: 0,
@@ -213,7 +216,10 @@ export function NeuralNetwork({
         className="absolute inset-0 w-full h-full"
         width={windowSize.w}
         height={windowSize.h}
-        onClick={onBackgroundClick}
+        onClick={(e) => {
+          onBackgroundClick();
+          signalRef.current?.emit(e.clientX, e.clientY);
+        }}
       >
         <g ref={gRef}>
           {/* SVG filter for tag link glow */}
@@ -453,6 +459,8 @@ export function NeuralNetwork({
             'radial-gradient(ellipse at center, transparent 0%, rgba(8, 11, 16, 0.82) 65%, rgba(8, 11, 16, 0.98) 100%)',
         }}
       />
+
+      <NeuralSignalLayer ref={signalRef} nodes={allNodes} links={links} transform={transform} />
     </div>
   );
 }

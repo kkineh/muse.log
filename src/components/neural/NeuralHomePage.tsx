@@ -16,7 +16,7 @@ export function NeuralHomePage({ initialGraph, tagPostLinks }: NeuralHomePagePro
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [highlightedPosts, setHighlightedPosts] = useState<string[]>([]);
-  const [isChatCollapsed, setIsChatCollapsed] = useSessionStorage('chat-collapsed', false);
+  const [isChatCollapsed, setIsChatCollapsed] = useSessionStorage('chat-collapsed', true);
   const [navigatingPostId, setNavigatingPostId] = useState<string | null>(null);
 
   const handleNodeClick = useCallback((node: NeuralNode) => {
