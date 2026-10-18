@@ -22,16 +22,18 @@ interface NeuralSignalLayerProps {
   palette: NeuralPalette;
 }
 
-const SPEED = 220; // 점 사이 전파 속도 (px/s)
-const SEED_R = 60; // 클릭 지점에서 처음 켜지는 점의 반경 (px)
+const SPEED = 220; // 점 사이 전파 속도 (월드 px/s, 줌에 비례해 화면 속도가 바뀜)
+const SEED_R = 60; // 클릭 지점에서 처음 켜지는 점의 반경 (월드 px)
 const DOT_DECAY = 0.65; // 점을 한 칸 건널 때마다 줄어드는 세기
 const MIN_POWER = 0.3; // 이보다 약해지면 전파가 멈춤
-const NODE_TOUCH = 16; // 켜진 점이 노드 박스에 이만큼 가까우면 노드로 전파 (px)
+const NODE_TOUCH = 16; // 켜진 점이 노드 박스에 이만큼 가까우면 노드로 전파 (월드 px)
 const DOT_HOP = 0.7; // 점 → 노드 이동 시간 (s)
 const EDGE_HOP = 1.0; // 노드 → 노드 이동 시간 (s)
 const NODE_HOPS = 2; // 노드에서 시냅스를 따라 번지는 단계 수
 const DECAY = 0.9;
-const AUTO_MS = 3000;
+const AUTO_MIN_MS = 500;
+const AUTO_MAX_MS = 3000;
+const nextAutoDelay = () => AUTO_MIN_MS + Math.random() * (AUTO_MAX_MS - AUTO_MIN_MS);
 const DOT_LINK_R = 110; // 점끼리 연결선이 생기는 최대 거리 (px)
 const DOT_LINK_N = 3; // 점 하나가 이어지는 가까운 점 수
 const DOT_AREA = 5600; // 점 하나당 화면 면적 (px²)
@@ -188,7 +190,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
     let k = 1;
     let sig = propsRef.current.palette.signal;
     let dotColor = propsRef.current.palette.dot;
-    let nextAuto = performance.now() + AUTO_MS;
+    let nextAuto = performance.now() + nextAutoDelay();
     let last = performance.now();
     let raf = 0;
 
@@ -229,15 +231,15 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
       const cands: { i: number; mx: number; my: number; d: number }[] = [];
       forEachVisibleDot((i, mx, my, dx, dy) => cands.push({ i, mx, my, d: Math.hypot(dx - x, dy - y) }));
       cands.sort((p, q) => p.d - q.d);
-      const seeds = cands.filter((c) => c.d <= SEED_R);
+      const seeds = cands.filter((c) => c.d <= SEED_R * tr.k);
       (seeds.length ? seeds : cands.slice(0, 1)).forEach((c) =>
-        dacts.push({ i: c.i, mx: c.mx, my: c.my, at: now + (c.d / SPEED) * 1000, power: 1, w: wv })
+        dacts.push({ i: c.i, mx: c.mx, my: c.my, at: now + (c.d / (SPEED * tr.k)) * 1000, power: 1, w: wv })
       );
     };
     emitRef.current = (x, y) => {
       const now = performance.now();
       emit(x, y, now, true);
-      nextAuto = now + AUTO_MS;
+      nextAuto = now + nextAutoDelay();
     };
 
     const resize = () => {
@@ -256,7 +258,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
       refreshGraph();
       if (!reduceMotion && nowMs >= nextAuto) {
         emit(Math.random() * w, Math.random() * h, nowMs, false);
-        nextAuto = nowMs + AUTO_MS;
+        nextAuto = nowMs + nextAutoDelay();
       }
 
       ctx.clearRect(0, 0, w, h);
@@ -283,7 +285,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
             if (a.w.seenDots.has(dotKey(nb.j, nmx, nmy))) continue;
             const bx = tr.x + (dots[nb.j].wx + nmx * TW) * tr.k;
             const by = tr.y + (dots[nb.j].wy + nmy * TH) * tr.k;
-            const dur = (Math.hypot(bx - dx, by - dy) / SPEED) * 1000;
+            const dur = (Math.hypot(bx - dx, by - dy) / (SPEED * tr.k)) * 1000;
             lsigs.push({ ai: a.i, amx: a.mx, amy: a.my, ax: dx, ay: dy, bi: nb.j, bmx: nmx, bmy: nmy, t0: nowMs, dur, p: nextPower });
             dacts.push({ i: nb.j, mx: nmx, my: nmy, at: nowMs + dur, power: nextPower, w: a.w });
           }
@@ -293,7 +295,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
         snodes.forEach((n) => {
           if (a.w.touched.has(n.id)) return;
           const dist = Math.hypot(Math.max(Math.abs(n.x - dx) - n.hw, 0), Math.max(Math.abs(n.y - dy) - n.hh, 0));
-          if (dist > NODE_TOUCH) return;
+          if (dist > NODE_TOUCH * tr.k) return;
           a.w.touched.add(n.id);
           dsigs.push({ x: dx, y: dy, id: n.id, t0: nowMs, p: a.power });
           acts.push({ id: n.id, at: nowMs + DOT_HOP * 1000, power: a.power * 0.9, hops: NODE_HOPS, w: a.w });
