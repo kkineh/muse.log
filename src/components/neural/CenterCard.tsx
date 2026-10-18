@@ -136,12 +136,16 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
             <h1
               className="text-3xl mb-2"
               style={{
-                fontFamily: 'var(--font-space-grotesk), sans-serif',
+                fontFamily: 'var(--font-fira-code), monospace',
                 color: 'var(--neural-text-primary)',
                 fontWeight: 600,
               }}
             >
-              muse.log
+              <span style={{ display: 'inline-block', transform: 'scaleX(1.3)', margin: '0px 0.14em 0 0' }}>m</span>
+              use
+              <span style={{ margin: '0px -0.2em 0 -0.1em' }}>.</span>
+              <span style={{ marginRight: '-0.04em' }}>l</span>
+              og
             </h1>
             <p
               className="text-sm mb-4"

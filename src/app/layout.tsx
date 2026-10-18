@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Space_Grotesk, IBM_Plex_Mono } from 'next/font/google';
+import { Inter, Space_Grotesk, IBM_Plex_Mono, Fira_Code } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import LayoutContent from '@/components/LayoutContent';
@@ -24,6 +24,13 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: 'swap',
 });
 
+const firaCode = Fira_Code({
+  weight: ['600'],
+  subsets: ['latin'],
+  variable: '--font-fira-code',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   title: 'muse.log',
   description: 'A contemplative space for deep thoughts and technical musings',
@@ -37,7 +44,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`dark ${inter.variable} ${spaceGrotesk.variable} ${ibmPlexMono.variable}`}
+      className={`dark ${inter.variable} ${spaceGrotesk.variable} ${ibmPlexMono.variable} ${firaCode.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen">
