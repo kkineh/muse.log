@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Github, User, Minimize2 } from 'lucide-react';
+import { Send, Github, User, Mail, Minimize2 } from 'lucide-react';
 import Link from 'next/link';
+import { CiLinkedin } from 'react-icons/ci';
+import { GITHUB_URL, LINKEDIN_URL, MAIL_URL } from '@/lib/social-links';
 import { ChatBubble } from './ChatBubble';
 import type { ChatResponse } from '@/types/database';
 
@@ -106,18 +108,18 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
       />
     )}
     <div
-      className={`fixed z-50 transition-all duration-500 ease-in-out ${
+      className={`fixed z-50 md:transition-all md:duration-500 md:ease-in-out ${
         isCollapsed
-          ? 'bottom-8 left-1/2 -translate-x-1/2 w-[600px]'
-          : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%]'
+          ? 'bottom-3 md:bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] md:w-[600px]'
+          : 'top-0 left-0 w-full md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[60%]'
       }`}
       style={{
         fontFamily: 'var(--font-inter), sans-serif',
       }}
     >
       {/* Card content */}
-      <div className={`relative flex flex-col neural-center-card ${
-        isCollapsed ? 'h-[80px] neural-card-collapsed' : 'h-[640px]'
+      <div className={`relative flex flex-col neural-center-card max-md:transition-none! ${
+        isCollapsed ? 'h-[80px] neural-card-collapsed' : 'h-[100dvh] max-md:rounded-none max-md:border-0 md:h-[min(640px,calc(100dvh-4rem))]'
       }`}>
           {/* Collapse/Expand button - only show when expanded */}
           {!isCollapsed && (
@@ -132,7 +134,7 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
 
         {/* Header - hide when collapsed */}
         {!isCollapsed && (
-          <div className="p-8 pb-4">
+          <div className="p-5 pb-4 md:p-8 md:pb-4">
             <h1
               className="text-3xl mb-2"
               style={{
@@ -141,7 +143,7 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
                 fontWeight: 600,
               }}
             >
-              <span style={{ display: 'inline-block', transform: 'scaleX(1.3)', margin: '0px 0.14em 0 0' }}>m</span>
+              <span style={{ display: 'inline-block', transform: 'scaleX(1.38)', margin: '0px 0.14em 0 0' }}>m</span>
               use
               <span style={{ margin: '0px -0.2em 0 -0.1em' }}>.</span>
               <span style={{ marginRight: '-0.04em' }}>l</span>
@@ -157,24 +159,46 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
             </p>
 
             {/* Links */}
-            <div className="flex gap-4">
+            <div className="flex flex-wrap items-center gap-5">
               <Link
                 href="/about"
-                className="flex items-center gap-1.5 text-sm hover:text-[var(--neural-accent)] transition-colors"
+                aria-label="About"
+                title="About"
+                className="flex items-center text-sm hover:text-[var(--neural-accent)] transition-colors"
                 style={{ color: 'var(--neural-text-muted)' }}
               >
                 <User size={16} />
-                <span>About</span>
               </Link>
               <a
-                href="https://github.com/kkineh"
+                href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm hover:text-[var(--neural-accent)] transition-colors"
+                aria-label="GitHub"
+                title="GitHub"
+                className="flex items-center text-sm hover:text-[var(--neural-accent)] transition-colors"
                 style={{ color: 'var(--neural-text-muted)' }}
               >
                 <Github size={16} />
-                <span>GitHub</span>
+              </a>
+              <a
+                href={LINKEDIN_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="LinkedIn"
+                title="LinkedIn"
+                className="flex items-center text-sm hover:text-[var(--neural-accent)] transition-colors"
+                style={{ color: 'var(--neural-text-muted)' }}
+              >
+                <CiLinkedin size={18} />
+              </a>
+              <a
+                href={MAIL_URL}
+                aria-label="Email"
+                title="Email"
+                className="flex items-center text-sm hover:text-[var(--neural-accent)] transition-colors"
+                style={{ color: 'var(--neural-text-muted)' }}
+              >
+                <Mail size={16} />
               </a>
             </div>
           </div>
@@ -183,7 +207,7 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
         {/* Chat History - hide when collapsed */}
         <div
           ref={scrollRef}
-          className={`flex-1 px-8 overflow-y-auto ${isCollapsed ? 'hidden' : ''}`}
+          className={`flex-1 px-5 md:px-8 overflow-y-auto ${isCollapsed ? 'hidden' : ''}`}
           style={{
             scrollbarWidth: 'thin',
             scrollbarColor: 'var(--neural-border-glow) transparent',
@@ -232,7 +256,7 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
           </div>
 
         {/* Input */}
-        <div className={isCollapsed ? 'p-4' : 'p-8 pt-0'}>
+        <div className={isCollapsed ? 'p-4' : 'p-5 pt-0 md:p-8 md:pt-0'}>
           <form onSubmit={handleSubmit} className="relative">
             <input
               type="text"
