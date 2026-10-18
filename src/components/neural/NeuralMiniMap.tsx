@@ -2,9 +2,11 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Map as MapIcon, Minimize2 } from 'lucide-react';
 import { NeuralNetwork } from './NeuralNetwork';
 import { NEURAL_PALETTES } from '@/lib/neural-palettes';
 import { useNeuralPalette } from '@/hooks/useNeuralPalette';
+import { useMinimapCollapsed } from '@/hooks/useMinimapCollapsed';
 import type { NeuralGraphData, NeuralNode } from '@/lib/neural-graph-builder';
 
 interface NeuralMiniMapProps {
@@ -30,6 +32,7 @@ function clampSize(w: number, h: number) {
 export function NeuralMiniMap({ graph, tagPostLinks, currentSlug }: NeuralMiniMapProps) {
   const router = useRouter();
   const palette = NEURAL_PALETTES[useNeuralPalette()];
+  const [collapsed, setCollapsed] = useMinimapCollapsed();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [navigatingPostId, setNavigatingPostId] = useState<string | null>(null);
   const [size, setSize] = useState(MIN_SIZE);
@@ -81,6 +84,20 @@ export function NeuralMiniMap({ graph, tagPostLinks, currentSlug }: NeuralMiniMa
     onPointerCancel: onPointerUp,
   });
 
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={() => setCollapsed(false)}
+        aria-label="미니맵 열기"
+        title="미니맵 열기"
+        className="fixed bottom-6 left-6 z-30 hidden h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-[rgba(255,255,255,0.05)] md:flex text-[var(--neural-text-muted)] hover:text-[var(--neural-text-primary)]"
+      >
+        <MapIcon size={20} />
+      </button>
+    );
+  }
+
   return (
     <div
       className="fixed bottom-6 left-6 z-30 hidden overflow-hidden rounded-xl md:block"
@@ -88,7 +105,7 @@ export function NeuralMiniMap({ graph, tagPostLinks, currentSlug }: NeuralMiniMa
         width: size.w,
         height: size.h,
         border: '1px solid var(--neural-line)',
-        background: 'rgb(8 11 16 / 0.92)',
+        background: '#090b0f',
       }}
     >
       <NeuralNetwork
@@ -103,6 +120,19 @@ export function NeuralMiniMap({ graph, tagPostLinks, currentSlug }: NeuralMiniMa
         currentPostId={currentNodeId}
         palette={palette}
       />
+      <button
+        type="button"
+        onClick={() => {
+          sizeRef.current = MIN_SIZE;
+          setSize(MIN_SIZE);
+          setCollapsed(true);
+        }}
+        aria-label="미니맵 접기"
+        title="미니맵 접기"
+        className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-[rgba(255,255,255,0.08)] text-[var(--neural-text-muted)] hover:text-[var(--neural-text-primary)]"
+      >
+        <Minimize2 size={14} />
+      </button>
       <div className="absolute inset-x-3 top-0 z-10 h-2 cursor-ns-resize touch-none" {...handleProps('top')} />
       <div className="absolute inset-y-3 right-0 z-10 w-2 cursor-ew-resize touch-none" {...handleProps('right')} />
       <div className="absolute right-0 top-0 z-10 h-3 w-3 cursor-nesw-resize touch-none" {...handleProps('corner')} />
