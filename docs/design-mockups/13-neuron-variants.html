@@ -1,0 +1,230 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>13 Neuron Variants</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#05070b;color:#e5e7eb;font-family:"Pretendard","Apple SD Gothic Neo",system-ui,sans-serif;padding:28px 24px 48px}
+h1{font-size:16px;font-weight:600;margin:0 0 4px}
+p.sub{margin:0 0 18px;color:#7a8696;font-size:13px;line-height:1.6}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:20px;font-size:13px;color:#9aa6b6}
+button{background:#0f141c;color:#d5dbe5;border:1px solid #1f2937;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;font-family:inherit}
+button:hover{border-color:#38BDF8;color:#fff}
+button.on{border-color:#38BDF8;color:#38BDF8}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:14px}
+.card{border:1px solid #151c27;border-radius:12px;background:#090b0f;overflow:hidden}
+.card canvas{display:block;width:100%;height:290px;cursor:crosshair}
+.meta{padding:12px 14px 14px;border-top:1px solid #121923}
+.meta b{font-size:14px}.meta b i{font-style:normal;color:#38BDF8;margin-right:8px;font-family:ui-monospace,monospace}
+.meta span{display:block;color:#7a8696;font-size:12px;margin-top:4px;line-height:1.55}
+.tags{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px}
+.tags em{font-style:normal;font-size:11px;color:#8aa;border:1px solid #1b2430;border-radius:999px;padding:2px 8px}
+</style></head><body>
+<h1>뉴런 전파 목업 — 같은 점 배치, 다른 조합</h1>
+<p class="sub">아무 패널이나 클릭하면 모든 패널에서 같은 위치에서 동시에 발화합니다. 자동 발화도 같은 위치·같은 시각입니다. A가 지금 앱과 같은 방식입니다.</p>
+<div class="bar">
+  <button id="auto" class="on">자동 발화 켜짐</button>
+  <button id="fire">무작위 위치에서 발화</button>
+  <span>팔레트</span>
+  <button data-pal="sky" class="on">스카이블루</button>
+  <button data-pal="mint">민트</button>
+  <button data-pal="violet">바이올렛</button>
+</div>
+<div class="grid" id="grid"></div>
+<script>
+const PALS = {
+  sky: { acc: '#38BDF8', dot: '#BAE6FD', sig: '#38BDF8', soma: '#7DD3FC' },
+  mint: { acc: '#00FFC8', dot: '#AAEBFF', sig: '#00FFC8', soma: '#5EF2D6' },
+  violet: { acc: '#A78BFA', dot: '#DDD6FE', sig: '#A78BFA', soma: '#C4B5FD' },
+};
+let pal = PALS.sky;
+const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
+function rng(seed) { let s = seed >>> 0; return () => { s += 0x6d2b79f5; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+const VARIANTS = [
+  { id: 'A', name: '현재 (기준)', desc: '직선 그물 · 둥근 빛 덩어리 · 별처럼 반짝임. 켜질 때만 선이 드러남.', gen: 'mesh', curve: false, pulse: 'blob', twinkle: true, tags: ['직선', '빛 덩어리', '반짝임'] },
+  { id: 'B', name: '곡선', desc: '구조는 그대로 두고 연결선만 휘게. 신호도 곡선을 따라 이동.', gen: 'mesh', curve: true, pulse: 'blob', twinkle: true, tags: ['곡선'] },
+  { id: 'C', name: '곡선 + 펄스', desc: '둥근 빛 대신 머리가 밝고 꼬리가 사라지는 펄스가 곡선을 따라 달림.', gen: 'mesh', curve: true, pulse: 'comet', twinkle: true, tags: ['곡선', '펄스 꼬리'] },
+  { id: 'D', name: '곡선 + 나무 구조', desc: '일부 점이 세포체가 되고 나머지는 그 둘레에 가지처럼 갈라져 붙음. 세포체끼리는 긴 축삭으로 연결.', gen: 'tree', curve: true, pulse: 'comet', twinkle: true, tags: ['곡선', '펄스 꼬리', '세포체·가지'] },
+  { id: 'E', name: 'D + 발화 연출 + 돌기', desc: '신호가 닿으면 세포체가 크게 밝아짐. 세포체에서 짧은 돌기가 뻗음. 점 반짝임 제거.', gen: 'tree', curve: true, pulse: 'comet', twinkle: false, flash: true, stubs: true, tags: ['세포체 발화', '돌기', '반짝임 없음'] },
+  { id: 'F', name: 'E + 군집 · 잔상 · 희미한 섬유', desc: '점이 군집을 이루고, 섬유가 평소에도 아주 희미하게 보임. 신호가 지나간 자리는 오래 남음.', gen: 'tree', curve: true, pulse: 'comet', twinkle: false, flash: true, stubs: true, cluster: true, faint: true, afterglow: true, tags: ['군집 분포', '희미한 섬유', '잔상'] },
+  { id: 'G', name: 'F에서 평소엔 숨김', desc: 'F와 같지만 섬유를 평소에 그리지 않아 켜질 때만 드러남. (앱의 지금 방식과 같은 연출)', gen: 'tree', curve: true, pulse: 'comet', twinkle: false, flash: true, stubs: true, cluster: true, afterglow: true, tags: ['군집 분포', '잔상', '숨김'] },
+  { id: 'H', name: '뉴런 일러스트풍', desc: '점 대신 뉴런 몇 개를 그림: 세포체, 갈라지는 수상돌기, 이웃 뉴런으로 향하는 긴 축삭. 신호가 가지 끝에서 세포체를 거쳐 축삭으로 이동.', gen: 'neurons', curve: true, pulse: 'comet', twinkle: false, flash: true, faint: true, afterglow: true, tags: ['수상돌기 분기', '축삭', '일러스트'] },
+];
+
+class Panel {
+  constructor(host, v) {
+    this.v = v;
+    const card = document.createElement('div'); card.className = 'card';
+    card.innerHTML = '<canvas></canvas><div class="meta"><b><i>' + v.id + '</i>' + v.name + '</b><span>' + v.desc + '</span><div class="tags">' + v.tags.map(t => '<em>' + t + '</em>').join('') + '</div></div>';
+    host.appendChild(card);
+    this.canvas = card.querySelector('canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.canvas.addEventListener('click', (e) => { const r = this.canvas.getBoundingClientRect(); fireAll((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); });
+    this.resize();
+  }
+  resize() {
+    const dpr = Math.min(2, devicePixelRatio || 1), r = this.canvas.getBoundingClientRect();
+    this.W = r.width; this.H = r.height;
+    this.canvas.width = r.width * dpr; this.canvas.height = r.height * dpr;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.build();
+  }
+  // ---------- graph generation ----------
+  addEdge(a, b, kind, w) {
+    const A = this.nodes[a], B = this.nodes[b];
+    const dx = B.x - A.x, dy = B.y - A.y, len = Math.hypot(dx, dy) || 1;
+    const bend = this.v.curve ? (this.rnd() - 0.5) * (kind === 'axon' ? 0.42 : 0.55) : 0;
+    const cx = (A.x + B.x) / 2 - dy * bend, cy = (A.y + B.y) / 2 + dx * bend;
+    const pts = [], n = this.v.curve ? 16 : 2;
+    for (let i = 0; i < n; i++) { const t = i / (n - 1), u = 1 - t; pts.push([u * u * A.x + 2 * u * t * cx + t * t * B.x, u * u * A.y + 2 * u * t * cy + t * t * B.y]); }
+    const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const e = { a, b, kind, w: w || 1, pts, cum, len: cum[cum.length - 1], lit: 0 };
+    this.edges.push(e); this.adj[a].push([e, b]); this.adj[b].push([e, a]);
+  }
+  build() {
+    const v = this.v, W = this.W, H = this.H, rnd = this.rnd = rng(7);
+    this.nodes = []; this.edges = []; this.adj = []; this.pulses = []; this.queue = []; this.flash = {}; this.stubs = [];
+    const add = (x, y, type, r) => { this.nodes.push({ x, y, type, r: r || 1, lit: 0, ph: rnd() * 6.28, sp: 0.4 + rnd() * 0.8, a: 0.3 + rnd() * 0.2 }); this.adj.push([]); return this.nodes.length - 1; };
+    if (v.gen === 'neurons') return this.buildNeurons(add);
+    const N = Math.round((W * H) / 3000), pts = [];
+    const centers = Array.from({ length: 4 }, () => [60 + rnd() * (W - 120), 50 + rnd() * (H - 100)]);
+    let guard = 0;
+    while (pts.length < N && guard++ < 4000) {
+      let x, y;
+      if (v.cluster && rnd() < 0.72) { const c = centers[Math.floor(rnd() * centers.length)]; x = c[0] + (rnd() + rnd() + rnd() - 1.5) * 90; y = c[1] + (rnd() + rnd() + rnd() - 1.5) * 70; }
+      else { x = 14 + rnd() * (W - 28); y = 14 + rnd() * (H - 28); }
+      if (x < 10 || y < 10 || x > W - 10 || y > H - 10) continue;
+      if (pts.some(p => Math.hypot(p[0] - x, p[1] - y) < 16)) continue;
+      pts.push([x, y]);
+    }
+    if (v.gen === 'mesh') {
+      pts.forEach(p => add(p[0], p[1], 'dot', 1));
+      const seen = new Set();
+      this.nodes.forEach((n, i) => {
+        this.nodes.map((m, j) => ({ j, d: Math.hypot(m.x - n.x, m.y - n.y) })).filter(o => o.j !== i && o.d < 100).sort((p, q) => p.d - q.d).slice(0, 3).forEach(o => { const k = i < o.j ? i + '-' + o.j : o.j + '-' + i; if (!seen.has(k)) { seen.add(k); this.addEdge(i, o.j, 'mesh', 1); } });
+      });
+      return;
+    }
+    // tree: pick somas by farthest-point sampling
+    const K = Math.max(4, Math.round(pts.length * 0.13)), somaIdx = [Math.floor(rnd() * pts.length)];
+    while (somaIdx.length < K) { let best = -1, bd = -1; pts.forEach((p, i) => { const d = Math.min(...somaIdx.map(s => Math.hypot(pts[s][0] - p[0], pts[s][1] - p[1]))); if (d > bd) { bd = d; best = i; } }); somaIdx.push(best); }
+    const map = new Map();
+    pts.forEach((p, i) => { const isSoma = somaIdx.includes(i); map.set(i, add(p[0], p[1], isSoma ? 'soma' : 'dot', isSoma ? 1 : 0)); });
+    const somas = somaIdx.map(i => map.get(i)), groups = new Map(somas.map(s => [s, []]));
+    pts.forEach((p, i) => { if (somaIdx.includes(i)) return; const id = map.get(i); let bs = somas[0], bd = 1e9; somas.forEach(s => { const d = Math.hypot(this.nodes[s].x - p[0], this.nodes[s].y - p[1]); if (d < bd) { bd = d; bs = s; } }); groups.get(bs).push(id); });
+    groups.forEach((list, s) => {
+      const S = this.nodes[s]; list.sort((a, b) => Math.hypot(this.nodes[a].x - S.x, this.nodes[a].y - S.y) - Math.hypot(this.nodes[b].x - S.x, this.nodes[b].y - S.y));
+      const inTree = [s];
+      list.forEach(id => { const n = this.nodes[id]; let bj = s, bd = 1e9; inTree.forEach(j => { const d = Math.hypot(this.nodes[j].x - n.x, this.nodes[j].y - n.y); if (d < bd) { bd = d; bj = j; } }); this.addEdge(bj, id, 'dend', 0.9); inTree.push(id); });
+    });
+    const seenAx = new Set();
+    somas.forEach(s => { somas.filter(o => o !== s).sort((p, q) => Math.hypot(this.nodes[p].x - this.nodes[s].x, this.nodes[p].y - this.nodes[s].y) - Math.hypot(this.nodes[q].x - this.nodes[s].x, this.nodes[q].y - this.nodes[s].y)).slice(0, 2).forEach(o => { const k = s < o ? s + '-' + o : o + '-' + s; if (!seenAx.has(k)) { seenAx.add(k); this.addEdge(s, o, 'axon', 1.5); } }); });
+    this.makeStubs();
+  }
+  makeStubs() {
+    const rnd = this.rnd; this.stubs = [];
+    if (!this.v.stubs) return;
+    this.nodes.forEach(n => { if (n.type !== 'soma') return; const k = 5 + Math.floor(rnd() * 3), base = rnd() * 6.28; for (let i = 0; i < k; i++) { const a = base + (i / k) * 6.28 + (rnd() - 0.5) * 0.5, l = 14 + rnd() * 14, b = (rnd() - 0.5) * 0.9; this.stubs.push({ n, a, l, b }); } });
+  }
+  buildNeurons(add) {
+    const rnd = this.rnd, W = this.W, H = this.H, M = Math.max(5, Math.round((W * H) / 42000)), somas = [];
+    let guard = 0;
+    while (somas.length < M && guard++ < 800) { const x = 70 + rnd() * (W - 140), y = 60 + rnd() * (H - 120); if (somas.every(s => Math.hypot(this.nodes[s].x - x, this.nodes[s].y - y) > 120)) somas.push(add(x, y, 'soma', 1)); }
+    const tips = new Map();
+    const branch = (from, x, y, ang, len, depth, owner) => {
+      const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
+      const id = add(ex, ey, depth === 0 ? 'tip' : 'branch', 1);
+      this.addEdge(from, id, 'dend', 0.5 + depth * 0.3);
+      if (depth === 0) { tips.get(owner).push(id); return; }
+      const sp = 0.45 + rnd() * 0.35;
+      branch(id, ex, ey, ang - sp, len * (0.68 + rnd() * 0.1), depth - 1, owner);
+      branch(id, ex, ey, ang + sp * (0.7 + rnd() * 0.6), len * (0.68 + rnd() * 0.1), depth - 1, owner);
+    };
+    somas.forEach(s => { tips.set(s, []); const S = this.nodes[s], k = 4 + Math.floor(rnd() * 2), base = rnd() * 6.28; for (let i = 0; i < k; i++) branch(s, S.x, S.y, base + (i / k) * 6.28 + (rnd() - 0.5) * 0.4, 26 + rnd() * 14, 3, s); });
+    somas.forEach(s => { const S = this.nodes[s]; const others = somas.filter(o => o !== s).sort((p, q) => Math.hypot(this.nodes[p].x - S.x, this.nodes[p].y - S.y) - Math.hypot(this.nodes[q].x - S.x, this.nodes[q].y - S.y)).slice(0, 1); others.forEach(o => { const cand = tips.get(o).sort((p, q) => Math.hypot(this.nodes[p].x - S.x, this.nodes[p].y - S.y) - Math.hypot(this.nodes[q].x - S.x, this.nodes[q].y - S.y))[0]; if (cand !== undefined) this.addEdge(s, cand, 'axon', 1.5); }); });
+    this.stubs = [];
+  }
+  // ---------- propagation ----------
+  fire(nx, ny, now) {
+    const x = nx * this.W, y = ny * this.H, wave = { seen: new Set() };
+    const cand = this.nodes.map((n, i) => ({ i, d: Math.hypot(n.x - x, n.y - y) })).sort((a, b) => a.d - b.d);
+    const seeds = cand.filter(c => c.d < 55); (seeds.length ? seeds : cand.slice(0, 1)).forEach(c => this.queue.push({ node: c.i, at: now + c.d / 260, p: 1, wave }));
+  }
+  step(now, dt) {
+    const decay = this.v.gen === 'neurons' ? 0.88 : 0.8;
+    for (let i = this.queue.length - 1; i >= 0; i--) {
+      const q = this.queue[i]; if (q.at > now) continue; this.queue.splice(i, 1);
+      const N = this.nodes[q.node]; N.lit = Math.max(N.lit, q.p);
+      if (N.type === 'soma') this.flash[q.node] = Math.max(this.flash[q.node] || 0, q.p);
+      if (q.wave.seen.has(q.node)) continue; q.wave.seen.add(q.node);
+      const p2 = q.p * decay; if (p2 < 0.22) continue;
+      for (const [e, other] of this.adj[q.node]) {
+        if (q.wave.seen.has(other)) continue;
+        const speed = e.kind === 'axon' ? 380 : this.v.gen === 'mesh' ? 240 : 210, dur = e.len / speed * 1000;
+        this.pulses.push({ e, fwd: e.a === q.node, t0: now, dur, p: p2 }); e.lit = Math.max(e.lit, p2);
+        this.queue.push({ node: other, at: now + dur, p: p2, wave: q.wave });
+      }
+    }
+    const decE = this.v.afterglow ? 0.28 : 0.9;
+    this.edges.forEach(e => (e.lit = Math.max(0, e.lit - dt * decE)));
+    this.nodes.forEach(n => (n.lit = Math.max(0, n.lit - dt * 1.1)));
+    for (const k in this.flash) this.flash[k] = Math.max(0, this.flash[k] - dt * 1.4);
+    this.pulses = this.pulses.filter(p => now - p.t0 < p.dur);
+  }
+  pointAt(e, s, fwd) {
+    const d = fwd ? s : e.len - s; let i = 1; while (i < e.cum.length - 1 && e.cum[i] < d) i++;
+    const a = e.cum[i - 1], b = e.cum[i], u = b > a ? (d - a) / (b - a) : 0, P = e.pts[i - 1], Q = e.pts[i];
+    return [P[0] + (Q[0] - P[0]) * u, P[1] + (Q[1] - P[1]) * u];
+  }
+  strokeEdge(e, alpha, width) {
+    const c = this.ctx; c.strokeStyle = rgba(pal.sig, alpha); c.lineWidth = width; c.beginPath(); c.moveTo(e.pts[0][0], e.pts[0][1]);
+    for (let i = 1; i < e.pts.length; i++) c.lineTo(e.pts[i][0], e.pts[i][1]); c.stroke();
+  }
+  draw(now, t) {
+    const c = this.ctx, v = this.v;
+    c.fillStyle = '#090b0f'; c.fillRect(0, 0, this.W, this.H);
+    if (v.faint) this.edges.forEach(e => this.strokeEdge(e, e.kind === 'axon' ? 0.11 : 0.07, e.w * (v.gen === 'neurons' ? 1.1 : 0.9)));
+    this.edges.forEach(e => { if (e.lit > 0.02) this.strokeEdge(e, Math.min(0.7, e.lit * 0.6), e.w * (1 + e.lit * 0.5)); });
+    // pulses
+    this.pulses.forEach(p => {
+      const u = Math.min(1, (now - p.t0) / p.dur), s = (1 - (1 - u) * (1 - u) * 0.35) * u * p.e.len, e = p.e;
+      if (v.pulse === 'blob') { const [x, y] = this.pointAt(e, s, p.fwd); c.globalCompositeOperation = 'lighter'; const g = c.createRadialGradient(x, y, 0, x, y, 9); g.addColorStop(0, rgba(pal.sig, 0.8 * p.p)); g.addColorStop(1, rgba(pal.sig, 0)); c.fillStyle = g; c.beginPath(); c.arc(x, y, 9, 0, 6.2832); c.fill(); c.globalCompositeOperation = 'source-over'; c.fillStyle = 'rgba(255,255,255,' + 0.8 * p.p + ')'; c.beginPath(); c.arc(x, y, 1.5, 0, 6.2832); c.fill(); return; }
+      const tail = 46, steps = 10; let prev = this.pointAt(e, Math.max(0, s - tail), p.fwd);
+      c.lineCap = 'round';
+      for (let i = 1; i <= steps; i++) { const ss = Math.max(0, s - tail * (1 - i / steps)), q = this.pointAt(e, ss, p.fwd), k = i / steps; c.strokeStyle = rgba(pal.sig, 0.85 * p.p * k * k); c.lineWidth = 0.6 + 1.9 * k; c.beginPath(); c.moveTo(prev[0], prev[1]); c.lineTo(q[0], q[1]); c.stroke(); prev = q; }
+      const [hx, hy] = prev; c.globalCompositeOperation = 'lighter'; const g = c.createRadialGradient(hx, hy, 0, hx, hy, 7); g.addColorStop(0, 'rgba(255,255,255,' + 0.9 * p.p + ')'); g.addColorStop(0.3, rgba(pal.sig, 0.55 * p.p)); g.addColorStop(1, rgba(pal.sig, 0)); c.fillStyle = g; c.beginPath(); c.arc(hx, hy, 7, 0, 6.2832); c.fill(); c.globalCompositeOperation = 'source-over';
+    });
+    // stubs
+    this.stubs.forEach(st => { const f = this.flash[this.nodes.indexOf(st.n)] || 0, x0 = st.n.x, y0 = st.n.y, x1 = x0 + Math.cos(st.a) * st.l, y1 = y0 + Math.sin(st.a) * st.l, mx = (x0 + x1) / 2 - Math.sin(st.a) * st.l * st.b, my = (y0 + y1) / 2 + Math.cos(st.a) * st.l * st.b; c.strokeStyle = rgba(pal.sig, 0.14 + f * 0.5); c.lineWidth = 0.9; c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo(mx, my, x1, y1); c.stroke(); });
+    // nodes
+    this.nodes.forEach((n, i) => {
+      const l = n.lit, tw = v.twinkle ? 0.75 + 0.25 * Math.sin(t * n.sp + n.ph) : 1;
+      if (n.type === 'soma') {
+        const f = this.flash[i] || 0, r = v.gen === 'neurons' ? 4.6 : 3.6;
+        c.globalCompositeOperation = 'lighter'; const R = (v.flash ? 12 + f * 22 : 12) + 0, g = c.createRadialGradient(n.x, n.y, 0, n.x, n.y, R); g.addColorStop(0, rgba(pal.soma, 0.28 + (v.flash ? f * 0.6 : l * 0.4))); g.addColorStop(1, rgba(pal.soma, 0)); c.fillStyle = g; c.beginPath(); c.arc(n.x, n.y, R, 0, 6.2832); c.fill(); c.globalCompositeOperation = 'source-over';
+        c.fillStyle = rgba(pal.dot, 0.78 + f * 0.2); c.beginPath(); c.arc(n.x, n.y, r + f * 1.2, 0, 6.2832); c.fill();
+        if (v.flash && f > 0.05) { c.strokeStyle = rgba(pal.sig, f * 0.5); c.lineWidth = 1; c.beginPath(); c.arc(n.x, n.y, r + 4 + (1 - f) * 16, 0, 6.2832); c.stroke(); }
+        return;
+      }
+      if (n.type === 'branch' || n.type === 'tip') { if (l > 0.05) { c.fillStyle = rgba(pal.dot, 0.5 * l); c.beginPath(); c.arc(n.x, n.y, 1.6, 0, 6.2832); c.fill(); } if (n.type === 'tip') { c.fillStyle = rgba(pal.dot, 0.35 + l * 0.5); c.beginPath(); c.arc(n.x, n.y, 1.3, 0, 6.2832); c.fill(); } return; }
+      if (l > 0.05) { c.globalCompositeOperation = 'lighter'; const g = c.createRadialGradient(n.x, n.y, 0, n.x, n.y, 12); g.addColorStop(0, rgba(pal.sig, l * 0.3)); g.addColorStop(1, rgba(pal.sig, 0)); c.fillStyle = g; c.beginPath(); c.arc(n.x, n.y, 12, 0, 6.2832); c.fill(); c.globalCompositeOperation = 'source-over'; }
+      c.fillStyle = rgba(pal.dot, Math.min(1, n.a * tw + l * 0.45)); c.beginPath(); c.arc(n.x, n.y, 1.25 + l * 0.8, 0, 6.2832); c.fill();
+    });
+  }
+}
+
+const grid = document.getElementById('grid');
+const panels = VARIANTS.map(v => new Panel(grid, v));
+function fireAll(x, y) { const now = performance.now(); panels.forEach(p => p.fire(x, y, now)); }
+let autoOn = true, next = performance.now() + 1500, last = performance.now();
+document.getElementById('auto').onclick = (e) => { autoOn = !autoOn; e.target.classList.toggle('on', autoOn); e.target.textContent = '자동 발화 ' + (autoOn ? '켜짐' : '꺼짐'); };
+document.getElementById('fire').onclick = () => fireAll(0.15 + Math.random() * 0.7, 0.15 + Math.random() * 0.7);
+document.querySelectorAll('[data-pal]').forEach(b => (b.onclick = () => { pal = PALS[b.dataset.pal]; document.querySelectorAll('[data-pal]').forEach(x => x.classList.toggle('on', x === b)); }));
+addEventListener('resize', () => panels.forEach(p => p.resize()));
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (autoOn && now > next) { fireAll(0.12 + Math.random() * 0.76, 0.12 + Math.random() * 0.76); next = now + 2600 + Math.random() * 1600; }
+  panels.forEach(p => { p.step(now, dt); p.draw(now, now / 1000); });
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.__fireAll = fireAll;
+</script></body></html>
