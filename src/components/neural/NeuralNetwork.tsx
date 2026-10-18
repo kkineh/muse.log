@@ -6,6 +6,7 @@ import * as d3Drag from 'd3-drag';
 import { useD3ForceSimulation } from '@/hooks/useD3ForceSimulation';
 import { NeuralSignalLayer, type SignalLayerHandle } from './NeuralSignalLayer';
 import { hexA, type NeuralPalette } from '@/lib/neural-palettes';
+import { FIELD_H, FIELD_W, MIN_ZOOM_FULL } from '@/lib/neural-field';
 import { flattenNeuralGraph } from '@/lib/neural-graph-builder';
 import type { NeuralNode } from '@/lib/neural-graph-builder';
 
@@ -21,6 +22,11 @@ interface NeuralNetworkProps {
   variant?: 'full' | 'mini';
   currentPostId?: string | null;
 }
+
+const FIELD_EXTENT: [[number, number], [number, number]] = [
+  [-FIELD_W / 2, -FIELD_H / 2],
+  [FIELD_W / 2, FIELD_H / 2],
+];
 
 export function NeuralNetwork({
   data,
@@ -85,25 +91,33 @@ export function NeuralNetwork({
   const {
     nodes: allNodes,
     dragHandlers,
-    transform,
+    transformRef,
     fitted,
   } = useD3ForceSimulation(initialNodes, links, svgRef, gRef, {
     centerX: 0,
     centerY: 0,
     fitToView: mini,
-    minZoom: mini ? 0.08 : undefined,
+    minZoom: mini ? 0.08 : MIN_ZOOM_FULL,
+    translateExtent: mini ? undefined : FIELD_EXTENT,
   });
 
   // Store callbacks in refs so D3 drag can access latest versions
   const onNodeClickRef = useRef(onNodeClick);
   useEffect(() => { onNodeClickRef.current = onNodeClick; }, [onNodeClick]);
 
+  // 노드 집합이 바뀔 때만 드래그를 다시 연결한다 (틱마다 배열은 새로 만들어지지만 노드 id는 그대로)
+  const nodeSetKey = allNodes.map((n) => n.id).join('|');
+  const allNodesRef = useRef(allNodes);
+  useEffect(() => {
+    allNodesRef.current = allNodes;
+  });
+
   // Bind D3 drag to node <g> elements — this prevents zoom interference
   useEffect(() => {
     const nodesG = nodesGRef.current;
-    if (!nodesG || allNodes.length === 0) return;
+    if (!nodesG || allNodesRef.current.length === 0) return;
 
-    const nodeById = new Map(allNodes.map(n => [n.id, n]));
+    const nodeById = new Map(allNodesRef.current.map(n => [n.id, n]));
 
     // Select each node <g>, bind its data, and apply d3.drag
     d3Selection.select(nodesG)
@@ -132,7 +146,7 @@ export function NeuralNetwork({
           onNodeClickRef.current(node);
         });
       });
-  }, [allNodes, dragHandlers]);
+  }, [nodeSetKey, dragHandlers]);
 
   // --- Active/dimmed logic ---
   const activeSet = useMemo(() => {
@@ -484,7 +498,7 @@ export function NeuralNetwork({
             }}
           />
 
-          <NeuralSignalLayer ref={signalRef} nodes={allNodes} links={links} transform={transform} palette={palette} />
+          <NeuralSignalLayer ref={signalRef} nodes={allNodes} links={links} transformRef={transformRef} palette={palette} />
         </>
       )}
     </div>

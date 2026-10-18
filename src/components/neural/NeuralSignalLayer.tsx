@@ -1,8 +1,9 @@
 'use client';
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, type MutableRefObject } from 'react';
 import type { NeuralNode } from '@/lib/neural-graph-builder';
 import { hexA, type NeuralPalette } from '@/lib/neural-palettes';
+import { FIELD_H, FIELD_W } from '@/lib/neural-field';
 
 export interface SignalLayerHandle {
   emit: (x: number, y: number) => void;
@@ -18,7 +19,7 @@ interface SignalLink {
 interface NeuralSignalLayerProps {
   nodes: NeuralNode[];
   links: SignalLink[];
-  transform: { x: number; y: number; k: number };
+  transformRef: MutableRefObject<{ x: number; y: number; k: number }>;
   palette: NeuralPalette;
 }
 
@@ -47,7 +48,7 @@ interface SNode {
   color: string;
 }
 
-interface Wave { seen: Set<string>; touched: Set<string>; seenDots: Set<number>; toNodes: boolean }
+interface Wave { seen: Set<string>; touched: Set<string>; seenDots: Set<number> }
 
 function nodeColor(n: NeuralNode, palette: NeuralPalette): string {
   const depth = n.level || 3;
@@ -94,15 +95,15 @@ function borderSegment(A: SNode, B: SNode) {
 const edgeKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
 export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayerProps>(function NeuralSignalLayer(
-  { nodes, links, transform, palette },
+  { nodes, links, transformRef, palette },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const propsRef = useRef({ nodes, links, transform, palette });
+  const propsRef = useRef({ nodes, links, palette });
   const emitRef = useRef<(x: number, y: number) => void>(() => {});
 
   useEffect(() => {
-    propsRef.current = { nodes, links, transform, palette };
+    propsRef.current = { nodes, links, palette };
   });
 
   useImperativeHandle(ref, () => ({ emit: (x, y) => emitRef.current(x, y) }), []);
@@ -116,69 +117,84 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
     let w = 0;
     let h = 0;
 
-    // 점은 월드 좌표의 타일에 놓이고, 타일을 반복해 깔아서 노드와 함께 팬/줌된다
-    const TW = window.innerWidth;
-    const TH = window.innerHeight;
-    const dots = Array.from({ length: Math.round((TW * TH) / DOT_AREA) }, () => ({
-      wx: Math.random() * TW,
-      wy: Math.random() * TH,
-      r: 0.9 + Math.random() * 0.8,
-      a: 0.3 + Math.random() * 0.22,
-      tw: Math.random() * 6.28,
-      sp: 0.3 + Math.random() * 0.6,
-    }));
-    const dotCount = dots.length;
-    const dotKey = (i: number, mx: number, my: number) => ((my + 64) * 128 + (mx + 64)) * dotCount + i;
-    const litDots = new Map<number, { l: number; i: number; mx: number; my: number }>();
-
-    // 타일 가장자리를 넘어서도 이어지도록 토러스 거리로 이웃을 정한다
-    const dotNeighbors: { j: number; ox: number; oy: number }[][] = dots.map(() => []);
-    {
-      const seen = new Set<number>();
-      dots.forEach((d, i) => {
-        dots
-          .map((o, j) => {
-            let dx = o.wx - d.wx;
-            let dy = o.wy - d.wy;
-            let ox = 0;
-            let oy = 0;
-            if (dx > TW / 2) { dx -= TW; ox = -1; } else if (dx < -TW / 2) { dx += TW; ox = 1; }
-            if (dy > TH / 2) { dy -= TH; oy = -1; } else if (dy < -TH / 2) { dy += TH; oy = 1; }
-            return { j, ox, oy, dist: Math.hypot(dx, dy) };
-          })
-          .filter((o) => o.j !== i && o.dist <= DOT_LINK_R)
-          .sort((p, q) => p.dist - q.dist)
-          .slice(0, DOT_LINK_N)
-          .forEach(({ j, ox, oy }) => {
-            const pair = i < j ? i * dotCount + j : j * dotCount + i;
-            if (seen.has(pair)) return;
-            seen.add(pair);
-            dotNeighbors[i].push({ j, ox, oy });
-            dotNeighbors[j].push({ j: i, ox: -ox, oy: -oy });
-          });
-      });
+    // 점은 시작할 때 월드 전체(FIELD)에 한 번만 무작위로 깔아 두고, 노드와 함께 팬/줌된다
+    const N = Math.round((FIELD_W * FIELD_H) / DOT_AREA);
+    const dwx = new Float32Array(N);
+    const dwy = new Float32Array(N);
+    const dr = new Float32Array(N);
+    const da = new Float32Array(N);
+    const dtw = new Float32Array(N);
+    const dsp = new Float32Array(N);
+    const BUCKET = 400;
+    const GW = Math.ceil(FIELD_W / BUCKET);
+    const GH = Math.ceil(FIELD_H / BUCKET);
+    const grid: number[][] = Array.from({ length: GW * GH }, () => []);
+    const gridX = (x: number) => Math.min(GW - 1, Math.max(0, Math.floor((x + FIELD_W / 2) / BUCKET)));
+    const gridY = (y: number) => Math.min(GH - 1, Math.max(0, Math.floor((y + FIELD_H / 2) / BUCKET)));
+    for (let i = 0; i < N; i++) {
+      dwx[i] = (Math.random() - 0.5) * FIELD_W;
+      dwy[i] = (Math.random() - 0.5) * FIELD_H;
+      dr[i] = 0.9 + Math.random() * 0.8;
+      da[i] = 0.3 + Math.random() * 0.22;
+      dtw[i] = Math.random() * 6.28;
+      dsp[i] = 0.3 + Math.random() * 0.6;
+      grid[gridY(dwy[i]) * GW + gridX(dwx[i])].push(i);
     }
+    const litDots = new Map<number, number>();
+    const ALPHA_STEPS = 6;
+    const alphaBuckets: number[][] = Array.from({ length: ALPHA_STEPS }, () => []);
+
+    // 연결선 이웃은 점이 켜질 때 처음 계산한다 (가까운 DOT_LINK_N개, 거리 DOT_LINK_R 이내)
+    const neighborCache = new Map<number, number[]>();
+    const neighborsOf = (i: number): number[] => {
+      const cached = neighborCache.get(i);
+      if (cached) return cached;
+      if (neighborCache.size > 20000) neighborCache.clear();
+      const gx = gridX(dwx[i]);
+      const gy = gridY(dwy[i]);
+      const near: { j: number; d: number }[] = [];
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          const bx = gx + ox;
+          const by = gy + oy;
+          if (bx < 0 || by < 0 || bx >= GW || by >= GH) continue;
+          for (const j of grid[by * GW + bx]) {
+            if (j === i) continue;
+            const dx = dwx[j] - dwx[i];
+            const dy = dwy[j] - dwy[i];
+            if (Math.abs(dx) > DOT_LINK_R || Math.abs(dy) > DOT_LINK_R) continue;
+            const d = Math.hypot(dx, dy);
+            if (d <= DOT_LINK_R) near.push({ j, d });
+          }
+        }
+      }
+      near.sort((p, q) => p.d - q.d);
+      const result = near.slice(0, DOT_LINK_N).map((o) => o.j);
+      neighborCache.set(i, result);
+      return result;
+    };
+
     const tr = { x: 0, y: 0, k: 1 };
-    const forEachVisibleDot = (fn: (i: number, mx: number, my: number, x: number, y: number) => void) => {
+    const forEachVisibleDot = (fn: (i: number, x: number, y: number) => void) => {
       const margin = 24;
-      const mx0 = Math.floor((-margin - tr.x) / tr.k / TW) - 1;
-      const mx1 = Math.floor((w + margin - tr.x) / tr.k / TW) + 1;
-      const my0 = Math.floor((-margin - tr.y) / tr.k / TH) - 1;
-      const my1 = Math.floor((h + margin - tr.y) / tr.k / TH) + 1;
-      for (let my = my0; my <= my1; my++) {
-        for (let mx = mx0; mx <= mx1; mx++) {
-          for (let i = 0; i < dotCount; i++) {
-            const x = tr.x + (dots[i].wx + mx * TW) * tr.k;
-            const y = tr.y + (dots[i].wy + my * TH) * tr.k;
+      const gx0 = gridX((-margin - tr.x) / tr.k);
+      const gx1 = gridX((w + margin - tr.x) / tr.k);
+      const gy0 = gridY((-margin - tr.y) / tr.k);
+      const gy1 = gridY((h + margin - tr.y) / tr.k);
+      for (let gy = gy0; gy <= gy1; gy++) {
+        for (let gx = gx0; gx <= gx1; gx++) {
+          for (const i of grid[gy * GW + gx]) {
+            const x = tr.x + dwx[i] * tr.k;
+            const y = tr.y + dwy[i] * tr.k;
             if (x < -margin || x > w + margin || y < -margin || y > h + margin) continue;
-            fn(i, mx, my, x, y);
+            fn(i, x, y);
           }
         }
       }
     };
 
-    const lsigs: { ax: number; ay: number; amx: number; amy: number; bi: number; bmx: number; bmy: number; ai: number; t0: number; dur: number; p: number }[] = [];
-    const dacts: { i: number; mx: number; my: number; at: number; power: number; w: Wave }[] = [];
+    const lsigs: { a: number; b: number; t0: number; dur: number; p: number }[] = [];
+    const dacts: { i: number; at: number; power: number; w: Wave }[] = [];
     const acts: { id: string; at: number; power: number; hops: number; w: Wave }[] = [];
     const dsigs: { x: number; y: number; id: string; t0: number; p: number }[] = [];
     const sigs: { a: string; b: string; t0: number; p: number }[] = [];
@@ -195,7 +211,8 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
     let raf = 0;
 
     const refreshGraph = () => {
-      const { nodes: ns, links: ls, transform: t, palette: pal } = propsRef.current;
+      const { nodes: ns, links: ls, palette: pal } = propsRef.current;
+      const t = transformRef.current;
       sig = pal.signal;
       dotColor = pal.dot;
       k = t.k;
@@ -225,20 +242,20 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
       }
     };
 
-    const emit = (x: number, y: number, now: number, toNodes: boolean) => {
+    const emit = (x: number, y: number, now: number) => {
       refreshGraph();
-      const wv: Wave = { seen: new Set(), touched: new Set(), seenDots: new Set(), toNodes };
-      const cands: { i: number; mx: number; my: number; d: number }[] = [];
-      forEachVisibleDot((i, mx, my, dx, dy) => cands.push({ i, mx, my, d: Math.hypot(dx - x, dy - y) }));
+      const wv: Wave = { seen: new Set(), touched: new Set(), seenDots: new Set() };
+      const cands: { i: number; d: number }[] = [];
+      forEachVisibleDot((i, dx, dy) => cands.push({ i, d: Math.hypot(dx - x, dy - y) }));
       cands.sort((p, q) => p.d - q.d);
       const seeds = cands.filter((c) => c.d <= SEED_R * tr.k);
       (seeds.length ? seeds : cands.slice(0, 1)).forEach((c) =>
-        dacts.push({ i: c.i, mx: c.mx, my: c.my, at: now + (c.d / (SPEED * tr.k)) * 1000, power: 1, w: wv })
+        dacts.push({ i: c.i, at: now + (c.d / (SPEED * tr.k)) * 1000, power: 1, w: wv })
       );
     };
     emitRef.current = (x, y) => {
       const now = performance.now();
-      emit(x, y, now, true);
+      emit(x, y, now);
       nextAuto = now + nextAutoDelay();
     };
 
@@ -257,41 +274,35 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
       const t = nowMs / 1000;
       refreshGraph();
       if (!reduceMotion && nowMs >= nextAuto) {
-        emit(Math.random() * w, Math.random() * h, nowMs, false);
+        emit(Math.random() * w, Math.random() * h, nowMs);
         nextAuto = nowMs + nextAutoDelay();
       }
 
       ctx.clearRect(0, 0, w, h);
 
-      // 점 발화 -> 반경 안의 가까운 노드 최대 2개로 전파
+      // 점 발화 -> 연결선을 따라 이웃 점으로, 노드 박스에 닿으면 노드로 전파
       for (let i = dacts.length - 1; i >= 0; i--) {
         const a = dacts[i];
         if (a.at > nowMs) continue;
         dacts.splice(i, 1);
-        const dx = tr.x + (dots[a.i].wx + a.mx * TW) * tr.k;
-        const dy = tr.y + (dots[a.i].wy + a.my * TH) * tr.k;
-        const dk = dotKey(a.i, a.mx, a.my);
-        const cur = litDots.get(dk);
-        litDots.set(dk, { l: Math.max(cur?.l ?? 0, a.power), i: a.i, mx: a.mx, my: a.my });
-        const sk = dk;
-        if (a.w.seenDots.has(sk)) continue;
-        a.w.seenDots.add(sk);
+        const dx = tr.x + dwx[a.i] * tr.k;
+        const dy = tr.y + dwy[a.i] * tr.k;
+        litDots.set(a.i, Math.max(litDots.get(a.i) ?? 0, a.power));
+        if (a.w.seenDots.has(a.i)) continue;
+        a.w.seenDots.add(a.i);
         // 점 사이 연결선을 따라 다음 점으로 전파 (세기가 약해지면 멈춤)
         const nextPower = a.power * DOT_DECAY;
         if (nextPower >= MIN_POWER) {
-          for (const nb of dotNeighbors[a.i]) {
-            const nmx = a.mx + nb.ox;
-            const nmy = a.my + nb.oy;
-            if (a.w.seenDots.has(dotKey(nb.j, nmx, nmy))) continue;
-            const bx = tr.x + (dots[nb.j].wx + nmx * TW) * tr.k;
-            const by = tr.y + (dots[nb.j].wy + nmy * TH) * tr.k;
+          for (const j of neighborsOf(a.i)) {
+            if (a.w.seenDots.has(j)) continue;
+            const bx = tr.x + dwx[j] * tr.k;
+            const by = tr.y + dwy[j] * tr.k;
             const dur = (Math.hypot(bx - dx, by - dy) / (SPEED * tr.k)) * 1000;
-            lsigs.push({ ai: a.i, amx: a.mx, amy: a.my, ax: dx, ay: dy, bi: nb.j, bmx: nmx, bmy: nmy, t0: nowMs, dur, p: nextPower });
-            dacts.push({ i: nb.j, mx: nmx, my: nmy, at: nowMs + dur, power: nextPower, w: a.w });
+            lsigs.push({ a: a.i, b: j, t0: nowMs, dur, p: nextPower });
+            dacts.push({ i: j, at: nowMs + dur, power: nextPower, w: a.w });
           }
         }
         // 켜진 점이 노드 박스에 닿으면 그 노드로 전파
-        if (!a.w.toNodes) continue;
         snodes.forEach((n) => {
           if (a.w.touched.has(n.id)) return;
           const dist = Math.hypot(Math.max(Math.abs(n.x - dx) - n.hw, 0), Math.max(Math.abs(n.y - dy) - n.hh, 0));
@@ -322,44 +333,56 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
 
       // 켜진 점 주변에서 숨겨져 있던 점 사이 연결선이 드러남
       ctx.lineWidth = 0.7;
-      litDots.forEach((cur, key) => {
-        const x = tr.x + (dots[cur.i].wx + cur.mx * TW) * tr.k;
-        const y = tr.y + (dots[cur.i].wy + cur.my * TH) * tr.k;
-        for (const nb of dotNeighbors[cur.i]) {
-          const nmx = cur.mx + nb.ox;
-          const nmy = cur.my + nb.oy;
-          const nk = dotKey(nb.j, nmx, nmy);
-          const other = litDots.get(nk);
-          if (other && nk < key) continue;
-          const l = (cur.l + (other?.l ?? 0)) / 2;
-          if (l < 0.03) continue;
-          ctx.strokeStyle = rgba(sig, 0.22 * l);
+      litDots.forEach((l, i) => {
+        const x = tr.x + dwx[i] * tr.k;
+        const y = tr.y + dwy[i] * tr.k;
+        for (const j of neighborsOf(i)) {
+          const lj = litDots.get(j);
+          if (lj !== undefined && j < i) continue;
+          const lv = (l + (lj ?? 0)) / 2;
+          if (lv < 0.03) continue;
+          ctx.strokeStyle = rgba(sig, 0.22 * lv);
           ctx.beginPath();
           ctx.moveTo(x, y);
-          ctx.lineTo(tr.x + (dots[nb.j].wx + nmx * TW) * tr.k, tr.y + (dots[nb.j].wy + nmy * TH) * tr.k);
+          ctx.lineTo(tr.x + dwx[j] * tr.k, tr.y + dwy[j] * tr.k);
           ctx.stroke();
         }
       });
 
-      // 배경 점
-      forEachVisibleDot((i, mx, my, x, y) => {
-        const d = dots[i];
-        const l = litDots.get(dotKey(i, mx, my))?.l ?? 0;
-        if (l > 0.05) {
+      // 배경 점 (축소하면 점도 함께 작아지되 너무 작아지지는 않음)
+      // 점이 많으므로 투명도를 몇 단계로 묶어 한 번에 그린다
+      const rf = Math.min(1, Math.max(tr.k, 0.4));
+      for (const bucket of alphaBuckets) bucket.length = 0;
+      forEachVisibleDot((i, x, y) => {
+        const l = litDots.get(i);
+        if (l !== undefined && l > 0.05) {
           ctx.globalCompositeOperation = 'lighter';
           glow(ctx, x, y, 8 + l * 8, sig, l * 0.3);
           ctx.globalCompositeOperation = 'source-over';
+          ctx.fillStyle = rgba(dotColor, Math.min(1, da[i] + l * 0.45));
+          ctx.beginPath();
+          ctx.arc(x, y, dr[i] * rf + l * 0.8, 0, Math.PI * 2);
+          ctx.fill();
+          return;
         }
-        const tw = reduceMotion ? 1 : 0.8 + 0.2 * Math.sin(t * d.sp + d.tw);
-        ctx.fillStyle = rgba(dotColor, Math.min(1, d.a * tw + l * 0.45));
+        const tw = reduceMotion ? 1 : 0.8 + 0.2 * Math.sin(t * dsp[i] + dtw[i]);
+        const idx = Math.min(ALPHA_STEPS - 1, Math.floor(((da[i] * tw) / 0.52) * ALPHA_STEPS));
+        alphaBuckets[idx].push(x, y, dr[i] * rf);
+      });
+      alphaBuckets.forEach((bucket, idx) => {
+        if (!bucket.length) return;
+        ctx.fillStyle = rgba(dotColor, ((idx + 0.5) / ALPHA_STEPS) * 0.52);
         ctx.beginPath();
-        ctx.arc(x, y, d.r + l * 0.8, 0, Math.PI * 2);
+        for (let n = 0; n < bucket.length; n += 3) {
+          const r = bucket[n + 2];
+          ctx.rect(bucket[n] - r, bucket[n + 1] - r, r * 2, r * 2);
+        }
         ctx.fill();
       });
-      litDots.forEach((cur, key) => {
-        const next = cur.l - dt * 1.1;
-        if (next <= 0) litDots.delete(key);
-        else cur.l = next;
+      litDots.forEach((l, i) => {
+        const next = l - dt * 1.1;
+        if (next <= 0) litDots.delete(i);
+        else litDots.set(i, next);
       });
 
       // 점 사이 연결선을 따라 이동하는 신호
@@ -367,10 +390,10 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
         const g = lsigs[i];
         const u = (nowMs - g.t0) / g.dur;
         if (u >= 1) { lsigs.splice(i, 1); continue; }
-        const ax = tr.x + (dots[g.ai].wx + g.amx * TW) * tr.k;
-        const ay = tr.y + (dots[g.ai].wy + g.amy * TH) * tr.k;
-        const bx = tr.x + (dots[g.bi].wx + g.bmx * TW) * tr.k;
-        const by = tr.y + (dots[g.bi].wy + g.bmy * TH) * tr.k;
+        const ax = tr.x + dwx[g.a] * tr.k;
+        const ay = tr.y + dwy[g.a] * tr.k;
+        const bx = tr.x + dwx[g.b] * tr.k;
+        const by = tr.y + dwy[g.b] * tr.k;
         ctx.globalCompositeOperation = 'lighter';
         glow(ctx, ax + (bx - ax) * u, ay + (by - ay) * u, 5, sig, 0.45 * g.p);
         ctx.globalCompositeOperation = 'source-over';
@@ -473,7 +496,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
     };
-  }, []);
+  }, [transformRef]);
 
   return <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden />;
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, type RefObject } from 'react';
+import { useEffect, useMemo, useState, useRef, type MutableRefObject, type RefObject } from 'react';
 import * as d3 from 'd3-force';
 import * as d3Zoom from 'd3-zoom';
 import * as d3Selection from 'd3-selection';
@@ -11,6 +11,7 @@ export interface UseD3ForceSimulationOptions {
   centerY?: number;
   fitToView?: boolean;
   minZoom?: number;
+  translateExtent?: [[number, number], [number, number]];
 }
 
 export interface DragHandlers {
@@ -29,7 +30,7 @@ export interface UseD3ForceSimulationReturn {
   nodes: NeuralNode[];
   simulation: d3.Simulation<NeuralNode, undefined> | null;
   dragHandlers: DragHandlers;
-  transform: ZoomTransform;
+  transformRef: MutableRefObject<ZoomTransform>;
   fitted: boolean;
 }
 
@@ -52,10 +53,11 @@ export function useD3ForceSimulation(
   gRef: RefObject<SVGGElement | null>,
   options: UseD3ForceSimulationOptions = {}
 ): UseD3ForceSimulationReturn {
-  const { centerX = 0, centerY = 0, fitToView = false, minZoom = 0.3 } = options;
+  const { centerX = 0, centerY = 0, fitToView = false, minZoom = 0.3, translateExtent } = options;
 
   const [nodes, setNodes] = useState<NeuralNode[]>(initialNodes);
-  const [transform, setTransform] = useState<ZoomTransform>({ x: 0, y: 0, k: 1 });
+  // 줌 상태는 React 상태가 아니라 ref로 들고 있어서, 확대·이동 중 그래프를 다시 렌더링하지 않는다
+  const transformRef = useRef<ZoomTransform>({ x: 0, y: 0, k: 1 });
   const simulationRef = useRef<d3.Simulation<NeuralNode, undefined> | null>(null);
   const rafRef = useRef<number | null>(null);
   const nodesRef = useRef<NeuralNode[]>(initialNodes);
@@ -165,13 +167,16 @@ export function useD3ForceSimulation(
     const H = svgEl.clientHeight || window.innerHeight;
 
     // Set initial transform to center the (0,0)-based graph
-    const initialTransform = d3Zoom.zoomIdentity.translate(W / 2, H / 2);
+    // 작은 화면(모바일)에서는 그래프가 잘려 보이지 않도록 줄여서 시작한다
+    const initialK = !fitToView && W < 768 ? Math.max(minZoom, Math.min(1, W / 1000)) : 1;
+    const initialTransform = d3Zoom.zoomIdentity.translate(W / 2, H / 2).scale(initialK);
 
     const zoom = d3Zoom.zoom<SVGSVGElement, unknown>()
       .scaleExtent([minZoom, 2.5])
+      .translateExtent(translateExtent ?? [[-Infinity, -Infinity], [Infinity, Infinity]])
       .on('zoom', (e) => {
         g.attr('transform', e.transform.toString());
-        setTransform({ x: e.transform.x, y: e.transform.y, k: e.transform.k });
+        transformRef.current = { x: e.transform.x, y: e.transform.y, k: e.transform.k };
       });
 
     svg.call(zoom);
@@ -228,10 +233,10 @@ export function useD3ForceSimulation(
       window.removeEventListener('resize', onResize);
       resizeObserver?.disconnect();
     };
-  }, [svgRef, gRef, fitToView, minZoom]);
+  }, [svgRef, gRef, fitToView, minZoom, translateExtent]);
 
   // Drag handlers
-  const dragHandlers: DragHandlers = {
+  const dragHandlers = useMemo<DragHandlers>(() => ({
     onDragStart: (nodeId: string) => {
       const simulation = simulationRef.current;
       if (!simulation) return;
@@ -257,13 +262,13 @@ export function useD3ForceSimulation(
         node.fy = null;
       }
     },
-  };
+  }), []);
 
   return {
     nodes,
     simulation: simulationRef.current,
     dragHandlers,
-    transform,
+    transformRef,
     fitted,
   };
 }
