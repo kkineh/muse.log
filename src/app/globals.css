@@ -776,21 +776,24 @@
   .neural-post-detail .post-prose code {
     color: var(--neural-text-primary);
     background-color: rgb(255 255 255 / 0.08);
+    border: 1px solid var(--neural-line);
   }
 
   .neural-post-detail .post-prose pre {
-    background: #0d1117;
+    background: rgb(255 255 255 / 0.04);
     border: 1px solid var(--neural-line);
+    box-shadow: none;
   }
 
   .neural-post-detail .post-prose pre code {
     color: var(--neural-text-primary);
     background-color: transparent;
+    border: none;
   }
 
-  /* Let highlight.js theme handle syntax coloring */
   .neural-post-detail .post-prose pre code.hljs {
-    background-color: transparent;
+    background-color: transparent !important;
+    padding: 0 !important;
   }
 
   .neural-post-detail .post-prose strong {

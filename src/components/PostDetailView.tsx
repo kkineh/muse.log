@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
-import { ArrowLeft, Copy, Check } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
 
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -12,6 +12,10 @@ import 'highlight.js/styles/github-dark.css';
 import dynamic from 'next/dynamic';
 import TableOfContents from '@/components/TableOfContents';
 import AdminToolbar from '@/components/AdminToolbar';
+import PageBackground from '@/components/PageBackground';
+import PageHeader from '@/components/PageHeader';
+import PostListSection, { type PostListItem } from '@/components/PostListSection';
+import { isSeriesTag } from '@/lib/series';
 import NeuralFooter from '@/components/NeuralFooter';
 import { NeuralMiniMap } from '@/components/neural/NeuralMiniMap';
 import type { NeuralGraphData } from '@/lib/neural-graph-builder';
@@ -34,17 +38,11 @@ interface PostData {
   tags?: PostTag[];
 }
 
-interface RelatedPost {
-  title: string;
-  slug: string;
-}
-
 interface PostDetailViewProps {
   post: PostData;
   categoryBreadcrumb?: { id: string; name: string; slug: string }[];
-  relatedPosts: RelatedPost[];
-  prevPost: RelatedPost | null;
-  nextPost: RelatedPost | null;
+  recentPosts: PostListItem[];
+  series?: { name: string; posts: PostListItem[] } | null;
   isDraft?: boolean;
   isAdmin?: boolean;
   graph?: NeuralGraphData;
@@ -54,15 +52,15 @@ interface PostDetailViewProps {
 export default function PostDetailView({
   post,
   categoryBreadcrumb = [],
-  relatedPosts,
-  prevPost,
-  nextPost,
+  recentPosts,
+  series = null,
   isDraft = false,
   isAdmin = false,
   graph,
   tagPostLinks,
 }: PostDetailViewProps) {
   const router = useRouter();
+  const visibleTags = (post.tags ?? []).filter((tag) => !isSeriesTag(tag.name));
   const [scrollProgress, setScrollProgress] = useState(0);
   const [viewCount, setViewCount] = useState<number | null>(null);
   const viewCountTracked = useRef(false);
@@ -112,14 +110,6 @@ export default function PostDetailView({
     ref?.addEventListener('scroll', handleScroll);
     return () => ref?.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const handleBack = () => {
-    router.push('/');
-  };
-
-  const handleNavigate = (slug: string) => {
-    router.push(`/posts/${slug}`);
-  };
 
   const extractText = (node: ReactNode): string => {
     if (typeof node === 'string') return node;
@@ -174,7 +164,7 @@ export default function PostDetailView({
             right: '0.8rem',
             zIndex: 1,
             background: 'rgba(255, 255, 255, 0.1)',
-            color: copied ? 'var(--neural-accent)' : 'var(--neural-text-muted)',
+            color: copied ? 'var(--neural-text-primary)' : 'var(--neural-text-muted)',
             border: 'none',
             cursor: 'pointer',
           }}
@@ -209,83 +199,10 @@ export default function PostDetailView({
       className="fixed inset-0 z-50 neural-post-detail"
       style={{ background: 'var(--neural-bg)' }}
     >
-      {/* Neural background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {/* Dot grid */}
-        <svg className="absolute inset-0 w-full h-full opacity-10">
-          <defs>
-            <pattern id="post-grid" width="50" height="50" patternUnits="userSpaceOnUse">
-              <circle cx="25" cy="25" r="1" fill="var(--neural-accent)" opacity="0.3" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#post-grid)" />
-        </svg>
+      <PageBackground scrollProgress={scrollProgress} />
 
-        {/* Reading progress neural pulse */}
-        <motion.div
-          className="absolute top-0 left-1/2 -translate-x-1/2"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{
-            scale: scrollProgress > 0 ? [1, 2, 1] : 0,
-            opacity: scrollProgress > 0 ? [0.5, 1, 0.5] : 0,
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        >
-          <div
-            className="w-2 h-2 rounded-full"
-            style={{
-              background: 'var(--neural-accent)',
-              boxShadow: '0 0 20px var(--neural-accent)',
-            }}
-          />
-        </motion.div>
-      </div>
-
-      {/* Header */}
-      <motion.div
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        className="fixed top-0 left-0 right-0 z-20 px-8 py-6 flex items-center justify-between"
-        style={{
-          background: 'linear-gradient(180deg, rgba(8, 11, 16, 0.95) 0%, transparent 100%)',
-          backdropFilter: 'blur(10px)',
-        }}
-      >
-        <button
-          onClick={handleBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-colors"
-        >
-          <ArrowLeft size={20} style={{ color: 'var(--neural-accent)' }} />
-          <span
-            style={{
-              color: 'var(--neural-text-muted)',
-              fontFamily: 'var(--font-space-grotesk), sans-serif',
-            }}
-          >
-            돌아가기
-          </span>
-        </button>
-
-        {/* Progress bar */}
-        <div className="flex-1 max-w-md mx-8 h-1 bg-[rgba(255,255,255,0.1)] rounded-full overflow-hidden">
-          <motion.div
-            className="h-full rounded-full"
-            style={{
-              background: 'linear-gradient(90deg, var(--neural-accent), var(--neural-node-sub))',
-              boxShadow: '0 0 10px var(--neural-accent)',
-            }}
-            initial={{ width: 0 }}
-            animate={{ width: `${scrollProgress}%` }}
-          />
-        </div>
-
-        {isAdmin ? <AdminToolbar slug={post.slug} /> : <div className="w-[190px]" />}
-
-      </motion.div>
+      <PageHeader scrollProgress={scrollProgress} />
+      {isAdmin && <AdminToolbar slug={post.slug} />}
 
       {/* Main content */}
       <motion.div
@@ -385,14 +302,14 @@ export default function PostDetailView({
           </motion.div>
 
           {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
+          {visibleTags.length > 0 && (
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.35 }}
               className="flex flex-wrap gap-2 mb-12"
             >
-              {post.tags.map((tag) => (
+              {visibleTags.map((tag) => (
                 <button
                   key={tag.id}
                   onClick={() => router.push(`/tags/${tag.slug}`)}
@@ -427,150 +344,7 @@ export default function PostDetailView({
             </ReactMarkdown>
           </motion.div>
 
-          {/* Navigation nodes at bottom */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="mt-24 flex flex-col sm:flex-row items-stretch justify-between gap-8"
-          >
-            {prevPost ? (
-              <button
-                onClick={() => handleNavigate(prevPost.slug)}
-                className="flex-1 text-left"
-              >
-                <div
-                  className="p-6 rounded-2xl border transition-all hover:shadow-[0_0_30px_rgb(var(--accent-rgb)/0.3)]"
-                  style={{
-                    borderColor: 'var(--border-color)',
-                    background: 'rgb(var(--accent-rgb) / 0.05)',
-                    backdropFilter: 'blur(10px)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--neural-accent)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                  }}
-                >
-                  <div
-                    className="text-xs mb-2"
-                    style={{
-                      color: 'var(--neural-text-muted)',
-                      fontFamily: 'var(--font-ibm-plex-mono), monospace',
-                    }}
-                  >
-                    ← 이전 글
-                  </div>
-                  <div
-                    className="text-lg"
-                    style={{
-                      color: 'var(--neural-text-primary)',
-                      fontFamily: 'var(--font-space-grotesk), sans-serif',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {prevPost.title}
-                  </div>
-                </div>
-              </button>
-            ) : (
-              <div className="flex-1" />
-            )}
-
-            {nextPost ? (
-              <button
-                onClick={() => handleNavigate(nextPost.slug)}
-                className="flex-1 text-right"
-              >
-                <div
-                  className="p-6 rounded-2xl border transition-all hover:shadow-[0_0_30px_rgba(167,139,250,0.3)]"
-                  style={{
-                    borderColor: '#A78BFA40',
-                    background: 'rgba(167, 139, 250, 0.05)',
-                    backdropFilter: 'blur(10px)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#A78BFA';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#A78BFA40';
-                  }}
-                >
-                  <div
-                    className="text-xs mb-2"
-                    style={{
-                      color: 'var(--neural-text-muted)',
-                      fontFamily: 'var(--font-ibm-plex-mono), monospace',
-                    }}
-                  >
-                    다음 글 →
-                  </div>
-                  <div
-                    className="text-lg"
-                    style={{
-                      color: 'var(--neural-text-primary)',
-                      fontFamily: 'var(--font-space-grotesk), sans-serif',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {nextPost.title}
-                  </div>
-                </div>
-              </button>
-            ) : (
-              <div className="flex-1" />
-            )}
-          </motion.div>
-
-          {/* Related posts */}
-          {relatedPosts.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="mt-16"
-            >
-              <h3
-                className="text-xl mb-6"
-                style={{
-                  fontFamily: 'var(--font-space-grotesk), sans-serif',
-                  color: 'var(--neural-text-muted)',
-                  fontWeight: 600,
-                }}
-              >
-                같은 카테고리의 다른 생각들
-              </h3>
-              <div className="flex flex-wrap gap-4">
-                {relatedPosts.map((related, index) => (
-                  <motion.button
-                    key={related.slug}
-                    onClick={() => handleNavigate(related.slug)}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.8 + index * 0.1 }}
-                    whileHover={{ scale: 1.05 }}
-                    className="px-4 py-2 rounded-full border"
-                    style={{
-                      borderColor: '#A78BFA40',
-                      backgroundColor: 'rgba(167, 139, 250, 0.1)',
-                      color: '#A78BFA',
-                      fontFamily: 'var(--font-ibm-plex-mono), monospace',
-                      fontSize: '13px',
-                    }}
-                  >
-                    {related.title}
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          )}
+          <PostListSection posts={recentPosts} currentSlug={post.slug} series={series} />
         </div>
         <NeuralFooter />
       </motion.div>

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { motion } from 'motion/react';
 import NeuralFooter from '@/components/NeuralFooter';
+import PageBackground from '@/components/PageBackground';
+import PageHeader from '@/components/PageHeader';
 
 export default function AboutPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -40,69 +40,29 @@ export default function AboutPage() {
   ];
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="fixed inset-0 z-50"
       style={{ background: 'var(--neural-bg)', color: 'var(--neural-text-primary)' }}
     >
-      {/* Header */}
-      <motion.div
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        className="fixed top-0 left-0 right-0 z-20 px-8 py-6 flex items-center justify-between"
-        style={{
-          background: 'linear-gradient(180deg, rgba(8, 11, 16, 0.95) 0%, transparent 100%)',
-          backdropFilter: 'blur(10px)',
-        }}
-      >
-        <Link
-          href="/"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-colors"
-        >
-          <ArrowLeft size={20} style={{ color: 'var(--neural-accent)' }} />
-          <span
-            style={{
-              color: 'var(--neural-text-muted)',
-              fontFamily: 'var(--font-space-grotesk), sans-serif',
-            }}
-          >
-            돌아가기
-          </span>
-        </Link>
+      <PageBackground scrollProgress={scrollProgress} />
 
-        {/* Progress bar */}
-        <div className="flex-1 max-w-md mx-8 h-1 bg-[rgba(255,255,255,0.1)] rounded-full overflow-hidden">
-          <motion.div
-            className="h-full rounded-full"
-            style={{
-              background: 'linear-gradient(90deg, var(--neural-accent), var(--neural-node-sub))',
-              boxShadow: '0 0 10px var(--neural-accent)',
-            }}
-            initial={{ width: 0 }}
-            animate={{ width: `${scrollProgress}%` }}
-          />
-        </div>
-
-        <div
-          className="text-sm"
-          style={{
-            color: 'var(--neural-text-muted)',
-            fontFamily: 'var(--font-ibm-plex-mono), monospace',
-          }}
-        >
-          {Math.round(scrollProgress)}%
-        </div>
-      </motion.div>
+      <PageHeader scrollProgress={scrollProgress} />
 
       {/* Scrollable content */}
-      <div
+      <motion.div
         ref={contentRef}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className="absolute inset-0 overflow-y-auto pt-32"
         style={{
           scrollbarWidth: 'thin',
           scrollbarColor: 'var(--neural-border-glow) transparent',
         }}
       >
-        <div className="max-w-2xl mx-auto px-6">
+        <div className="max-w-3xl mx-auto px-8">
 
           {/* Profile */}
           <section className="mb-12">
@@ -261,7 +221,7 @@ export default function AboutPage() {
         </div>
 
         <NeuralFooter />
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
