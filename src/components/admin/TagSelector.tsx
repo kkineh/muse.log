@@ -66,9 +66,9 @@ export default function TagSelector({ selectedTagIds, onChange }: TagSelectorPro
 
       if (res.ok) {
         const newTag = await res.json();
-        setTags((prev) => [...prev, newTag]);
         onChange([...selectedTagIds, newTag.id]);
         setSearch('');
+        await fetchTags();
       }
     } catch (error) {
       console.error('Failed to create tag:', error);
