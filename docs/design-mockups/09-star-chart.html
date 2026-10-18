@@ -1,0 +1,79 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>09 Star Chart</title></head><body>
+<script src="shared.js"></script>
+<script>
+const S = Muse.init({ bg: '#060a10', no: '09', title: 'Star Chart', note: '천체 관측도 스타일입니다. 눈금이 새겨진 동심원 위에 카테고리가 방위로 놓이고, 바깥 다이얼이 천천히 돕니다. 마우스를 올린 글의 좌표가 계기판에 표시됩니다.', hint: '글에 마우스: 좌표 조준 · 클릭: 글로 이동' });
+const { ctx } = S, M = Muse, A = '#00FFC8', MONO = 'ui-monospace,"SF Mono",Menlo,monospace';
+const stars = M.stars(160, 8);
+let pos = {};
+function hms(a) { const h = ((a / 6.2832 + 1.25) % 1) * 24; return String(Math.floor(h)).padStart(2, '0') + 'h ' + String(Math.floor((h % 1) * 60)).padStart(2, '0') + 'm'; }
+function dec(r) { return (r > .8 ? '+' : '+') + Math.round(90 - r * 90) + '°'; }
+S.onClick(() => { if (S.hover && S.hover.type === 'post') S.go(S.hover); });
+S.loop((t) => {
+  const { W, H } = S, f = M.fit(S), R = Math.min(f.rx, f.ry * 1.25) * 1.08, cx = f.cx, cy = f.cy;
+  ctx.fillStyle = '#060a10'; ctx.fillRect(0, 0, W, H);
+  M.drawStars(S, stars, { parallax: 6, alpha: .45 });
+  // 동심원 + 눈금
+  ctx.lineWidth = 1;
+  [.2, .4, .6, .8, 1].forEach((r, i) => {
+    ctx.strokeStyle = M.rgba(A, i === 4 ? .5 : .14); ctx.beginPath(); ctx.arc(cx, cy, R * r, 0, 6.2832); ctx.stroke();
+    ctx.font = '9px ' + MONO; ctx.fillStyle = M.rgba(A, .4); ctx.textAlign = 'left';
+    ctx.fillText(dec(r), cx + 4, cy - R * r - 3);
+  });
+  // 섹터선
+  M.RAW.forEach((c, i) => {
+    const a = -Math.PI / 2 + (i + .5) * 6.2832 / M.RAW.length - .0;
+    ctx.strokeStyle = M.rgba(A, .1); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke();
+  });
+  // 회전 다이얼
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(t * .02);
+  for (let d = 0; d < 360; d += 2) {
+    const a = d * Math.PI / 180, big = d % 10 === 0, r1 = R * 1.02, r2 = R * (big ? 1.06 : 1.035);
+    ctx.strokeStyle = M.rgba(A, big ? .6 : .25); ctx.beginPath(); ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1); ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2); ctx.stroke();
+    if (d % 30 === 0) { ctx.save(); ctx.translate(Math.cos(a) * R * 1.1, Math.sin(a) * R * 1.1); ctx.rotate(a + Math.PI / 2); ctx.font = '9px ' + MONO; ctx.fillStyle = M.rgba(A, .55); ctx.textAlign = 'center'; ctx.fillText(String(d).padStart(3, '0') + '°', 0, 0); ctx.restore(); }
+  }
+  ctx.restore();
+  M.nodes.forEach(n => (pos[n.id] = { x: cx + n.ux * R * 1.0, y: cy + n.uy * R * 1.0, r: n.type === 'root' ? 10 : n.type === 'cat' ? 7 : n.type === 'sub' ? 5 : 4 }));
+  S.hover = M.nearest(M.nodes, S.mouse.x, S.mouse.y, 14, n => pos[n.id]);
+  S.cursor(S.hover && S.hover.type === 'post');
+  const hn = S.hover ? new Set([S.hover.id, ...M.adj[S.hover.id]]) : null;
+  M.edges.forEach(e => {
+    const a = pos[e.a], b = pos[e.b], on = hn && hn.has(e.a) && hn.has(e.b);
+    ctx.strokeStyle = M.rgba(e.k === 'tag' ? '#A78BFA' : A, on ? .85 : e.k === 'tag' ? .22 : .28); ctx.lineWidth = on ? 1.3 : .8;
+    ctx.setLineDash(e.k === 'tag' ? [4, 4] : []); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]);
+  });
+  M.nodes.forEach(n => {
+    const p = pos[n.id], col = M.colorOf(n), on = S.hover === n;
+    ctx.fillStyle = '#060a10'; ctx.strokeStyle = n.type === 'post' ? '#fff' : col; ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    if (n.type === 'cat') { ctx.rect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2); }
+    else if (n.type === 'sub') { ctx.moveTo(p.x, p.y - p.r); ctx.lineTo(p.x + p.r, p.y); ctx.lineTo(p.x, p.y + p.r); ctx.lineTo(p.x - p.r, p.y); ctx.closePath(); }
+    else ctx.arc(p.x, p.y, p.r, 0, 6.2832);
+    ctx.fill(); ctx.stroke();
+    if (n.type === 'post') { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 1.4, 0, 6.2832); ctx.fill(); }
+    if (n.type === 'root') { M.sparkle(ctx, p.x, p.y, 22, A, .7); ctx.beginPath(); ctx.arc(p.x, p.y, 17, 0, 6.2832); ctx.strokeStyle = M.rgba(A, .4); ctx.stroke(); }
+    if (n.type !== 'post') {
+      ctx.font = (n.type === 'sub' ? '10px ' : '600 11px ') + MONO; ctx.textAlign = 'center'; ctx.fillStyle = n.type === 'sub' ? 'rgba(255,255,255,.6)' : col;
+      ctx.fillText(n.type === 'cat' ? n.label.toUpperCase() : n.label, p.x, p.y - p.r - 8);
+    }
+    if (on) { // 조준선
+      const s = 16 + Math.sin(t * 6) * 2;
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+      [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sy]) => { ctx.beginPath(); ctx.moveTo(p.x + sx * s, p.y + sy * (s - 7)); ctx.lineTo(p.x + sx * s, p.y + sy * s); ctx.lineTo(p.x + sx * (s - 7), p.y + sy * s); ctx.stroke(); });
+    }
+  });
+  // 계기판
+  const h = S.hover || null;
+  const bx = W - 300, by = 24;
+  ctx.fillStyle = 'rgba(8,14,20,.8)'; ctx.fillRect(bx, by, 276, 112); ctx.strokeStyle = M.rgba(A, .35); ctx.strokeRect(bx + .5, by + .5, 276, 112);
+  ctx.textAlign = 'left'; ctx.font = '9px ' + MONO; ctx.fillStyle = M.rgba(A, .7); ctx.fillText('TARGET LOCK', bx + 12, by + 20);
+  ctx.font = '600 12px ' + MONO; ctx.fillStyle = '#fff';
+  ctx.fillText(h ? M.short(h.label, 22) : '— no target —', bx + 12, by + 42);
+  ctx.font = '10px ' + MONO; ctx.fillStyle = 'rgba(255,255,255,.65)';
+  const p = h && pos[h.id];
+  ctx.fillText('RA  ' + (h ? hms(h.ang) : '--h --m'), bx + 12, by + 64);
+  ctx.fillText('DEC ' + (h ? dec(h.rad) : '--°'), bx + 12, by + 80);
+  ctx.fillText('LINKS ' + (h ? M.adj[h.id].length : '-'), bx + 150, by + 64);
+  ctx.fillText('TYPE ' + (h ? h.type.toUpperCase() : '-'), bx + 150, by + 80);
+  ctx.fillStyle = M.rgba(A, .5); ctx.fillText('SYS ' + new Date(t * 1000).toISOString().slice(14, 19), bx + 12, by + 100);
+});
+</script></body></html>

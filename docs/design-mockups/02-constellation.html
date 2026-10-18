@@ -1,0 +1,91 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>02 Constellation</title></head><body>
+<script src="shared.js"></script>
+<script>
+const S = Muse.init({ bg: '#04060d', no: '02', title: 'Constellation', note: '카테고리 하나가 별자리 하나입니다. 글은 별, 이어진 선은 별자리 선입니다. 별자리에 마우스를 올리면 선이 그려집니다.', hint: '별자리 위에 마우스 · 별 클릭하면 글로 이동' });
+const { ctx } = S, M = Muse, R = M.rng(21);
+// 별자리 배치: 위계 대신 카테고리별 자유로운 위치
+const jit = {};
+M.nodes.forEach(n => { jit[n.id] = { x: (R() - .5) * .09, y: (R() - .5) * .09 }; });
+const stars = M.stars(380, 3);
+const reveal = M.PALETTE.map(() => 0);
+let pos = {};
+function layout(t) {
+  const f = M.fit(S);
+  M.nodes.forEach(n => {
+    const j = jit[n.id];
+    pos[n.id] = {
+      x: f.cx + (n.ux + j.x) * f.rx - S.mouse.nx * 14 * n.rad,
+      y: f.cy + (n.uy + j.y) * f.ry - S.mouse.ny * 10 * n.rad,
+      r: n.type === 'root' ? 6 : n.type === 'cat' ? 5 : n.type === 'sub' ? 3.6 : 2.6 + (n.label.length % 4) * .5,
+    };
+  });
+}
+S.onClick(() => { if (S.hover && S.hover.type === 'post') S.go(S.hover); });
+S.loop((t, dt) => {
+  const { W, H } = S;
+  ctx.fillStyle = '#04060d'; ctx.fillRect(0, 0, W, H);
+  // 은하수 띠
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(-.5);
+  ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createLinearGradient(0, -H * .3, 0, H * .3);
+  g.addColorStop(0, 'rgba(120,140,255,0)'); g.addColorStop(.5, 'rgba(120,140,255,.10)'); g.addColorStop(1, 'rgba(120,140,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(-W, -H * .3, W * 2, H * .6);
+  ctx.restore(); ctx.globalCompositeOperation = 'source-over';
+  M.drawStars(S, stars, { parallax: 18 });
+  layout(t);
+  S.hover = M.nearest(M.nodes, S.mouse.x, S.mouse.y, 22, n => pos[n.id]);
+  S.cursor(S.hover && S.hover.type === 'post');
+  // 어느 별자리 위에 있는지
+  let hc = -1;
+  if (S.hover && S.hover.ci >= 0) hc = S.hover.ci;
+  else {
+    let bd = 1e9;
+    M.nodes.forEach(n => { if (n.ci < 0) return; const d = Math.hypot(pos[n.id].x - S.mouse.x, pos[n.id].y - S.mouse.y); if (d < 110 && d < bd) { bd = d; hc = n.ci; } });
+  }
+  reveal.forEach((v, i) => { reveal[i] += ((hc === i ? 1 : 0) - v) * Math.min(1, dt * 5); });
+  // 별자리 선
+  M.edges.forEach(e => {
+    const a = pos[e.a], b = pos[e.b], nb = M.byId[e.b];
+    if (e.k === 'tag') {
+      ctx.setLineDash([2, 7]); ctx.strokeStyle = 'rgba(180,190,255,.13)';
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]);
+      return;
+    }
+    const k = nb.ci >= 0 ? reveal[nb.ci] : 0, col = M.colorOf(nb);
+    const al = .16 + .6 * k;
+    ctx.strokeStyle = M.rgba(col, al); ctx.lineWidth = .8 + k * .8;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y);
+    const ex = a.x + (b.x - a.x) * (.55 + .45 * k), ey = a.y + (b.y - a.y) * (.55 + .45 * k);
+    ctx.lineTo(ex, ey); ctx.stroke();
+  });
+  // 별
+  M.nodes.forEach(n => {
+    const p = pos[n.id], col = M.colorOf(n), k = n.ci >= 0 ? reveal[n.ci] : 0;
+    const tw = .75 + .25 * Math.sin(t * 2 + n.ang * 9);
+    M.glow(ctx, p.x, p.y, p.r * (5 + k * 4), col, (.25 + .3 * k) * tw);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+    if (n.type !== 'post') M.sparkle(ctx, p.x, p.y, p.r * 4.2 * (1 + k * .6), col, .5 + .4 * k);
+    if (n.type === 'cat' || n.type === 'root') {
+      ctx.font = '500 11px ' + M.FONT; ctx.textAlign = 'center';
+      ctx.fillStyle = M.rgba(col === '#FFFFFF' ? '#e5e7eb' : col, .65 + .35 * k);
+      ctx.fillText(n.type === 'root' ? 'muse.log' : n.label.toUpperCase().split('').join(' '), p.x, p.y - p.r - 14);
+    }
+    if (n.type === 'sub') {
+      ctx.font = '10px ' + M.FONT; ctx.textAlign = 'center'; ctx.fillStyle = M.rgba('#ffffff', .25 + .45 * k);
+      ctx.fillText(n.label, p.x, p.y + p.r + 13);
+    }
+    if (n.type === 'post' && (k > .5 || (S.hover && S.hover.id === n.id))) {
+      ctx.font = '11px ' + M.FONT; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,.88)';
+      ctx.fillText(M.short(n.label, 18), p.x, p.y + p.r + 15);
+    }
+  });
+  // 유성
+  const m = (t * .35) % 4;
+  if (m < 1) {
+    const x = W * (.1 + m * .5), y = H * (.08 + m * .3);
+    const gr = ctx.createLinearGradient(x, y, x - 80, y - 36);
+    gr.addColorStop(0, 'rgba(255,255,255,.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = gr; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 80, y - 36); ctx.stroke();
+  }
+});
+</script></body></html>

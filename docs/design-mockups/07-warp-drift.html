@@ -1,0 +1,73 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>07 Warp Drift</title></head><body>
+<script src="shared.js"></script>
+<script>
+const S = Muse.init({ bg: '#03040a', no: '07', title: 'Warp Drift', note: '카메라가 우주 속을 떠다닙니다. 노드마다 깊이가 달라 시차가 생기고, 카테고리를 누르면 그쪽으로 워프해 들어갑니다. 빈 곳을 누르면 돌아옵니다.', hint: '카테고리 클릭: 워프 · 빈 곳 클릭: 복귀 · 글 클릭: 이동' });
+const { ctx } = S, M = Muse, R = M.rng(2);
+const Z = {}; M.nodes.forEach(n => (Z[n.id] = n.type === 'root' ? .5 : .25 + R() * .75));
+const cam = { x: 0, y: 0, s: 1, tx: 0, ty: 0, ts: 1 }, streak = { v: 0 };
+const field = Array.from({ length: 320 }, () => ({ x: (R() - .5) * 3, y: (R() - .5) * 3, z: .05 + R() * .95 }));
+let focus = null, pos = {};
+function worldOf(n, f) { return { x: n.ux * f.rx, y: n.uy * f.ry }; }
+function warpTo(n) {
+  const f = M.fit(S);
+  if (!n) { cam.tx = 0; cam.ty = 0; cam.ts = 1; focus = null; return; }
+  const w = worldOf(n, f);
+  cam.tx = w.x; cam.ty = w.y; cam.ts = n.type === 'cat' ? 2.2 : 1.7; focus = n.ci; streak.v = 1;
+}
+S.onClick(() => {
+  const h = S.hover;
+  if (h && h.type === 'post') return S.go(h);
+  if (h && h.type !== 'root') warpTo(h); else warpTo(null);
+});
+S.loop((t, dt) => {
+  const { W, H } = S, f = M.fit(S);
+  const k = Math.min(1, dt * 3.2);
+  cam.x += (cam.tx - cam.x) * k; cam.y += (cam.ty - cam.y) * k; cam.s += (cam.ts - cam.s) * k;
+  streak.v *= .94;
+  const moving = Math.hypot(cam.tx - cam.x, cam.ty - cam.y) * .01 + Math.abs(cam.ts - cam.s) * .6;
+  ctx.fillStyle = '#03040a'; ctx.fillRect(0, 0, W, H);
+  M.glow(ctx, W * .5 - S.mouse.nx * 30, H * .5 - S.mouse.ny * 20, Math.max(W, H) * .6, '#2a1f66', .22);
+  // 별 줄무늬
+  const sl = Math.min(60, 2 + moving * 40 + streak.v * 40);
+  field.forEach(s => {
+    const p = .4 + s.z * 1.2;
+    const x = W / 2 + (s.x * W - cam.x * p * cam.s * .6 - S.mouse.nx * 40 * s.z) * (1 + (cam.s - 1) * s.z * .6);
+    const y = H / 2 + (s.y * H - cam.y * p * cam.s * .6 - S.mouse.ny * 30 * s.z) * (1 + (cam.s - 1) * s.z * .6);
+    const dx = x - W / 2, dy = y - H / 2, d = Math.hypot(dx, dy) || 1;
+    ctx.strokeStyle = 'rgba(210,225,255,' + (.2 + s.z * .6) + ')'; ctx.lineWidth = .6 + s.z * 1.1;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - dx / d * sl * s.z, y - dy / d * sl * s.z); ctx.stroke();
+  });
+  M.nodes.forEach(n => {
+    const w = worldOf(n, f), z = Z[n.id], p = .6 + z * .7;
+    const sc = cam.s * (.55 + z * .75);
+    pos[n.id] = {
+      x: W / 2 + (w.x - cam.x * p) * cam.s * p - S.mouse.nx * 24 * z,
+      y: H / 2 + (w.y - cam.y * p) * cam.s * p - S.mouse.ny * 16 * z,
+      sc, z, r: (n.type === 'root' ? 18 : n.type === 'cat' ? 12 : n.type === 'sub' ? 8 : 5) * sc,
+    };
+  });
+  S.hover = M.nearest(M.nodes, S.mouse.x, S.mouse.y, 12, n => pos[n.id]);
+  S.cursor(!!S.hover && S.hover.type !== 'root');
+  const vis = n => focus == null || n.ci === focus || n.ci < 0 ? 1 : .08;
+  M.edges.forEach(e => {
+    const a = pos[e.a], b = pos[e.b], nb = M.byId[e.b];
+    const al = Math.min(vis(M.byId[e.a]), vis(nb)) * (e.k === 'tag' ? .12 : .3);
+    ctx.strokeStyle = M.rgba(M.colorOf(nb), al); ctx.lineWidth = (e.k === 'tag' ? .6 : 1.2) * cam.s;
+    ctx.setLineDash(e.k === 'tag' ? [2, 6] : []); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]);
+  });
+  M.nodes.slice().sort((a, b) => Z[a.id] - Z[b.id]).forEach(n => {
+    const p = pos[n.id], col = M.colorOf(n), v = vis(n), on = S.hover === n;
+    ctx.globalAlpha = v * (.5 + Z[n.id] * .5);
+    ctx.globalCompositeOperation = 'lighter'; M.glow(ctx, p.x, p.y, p.r * (on ? 6 : 4.2), col, .5); ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = n.type === 'post' ? '#fff' : col; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+    if (n.type !== 'post') { ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 1.7, 0, 6.2832); ctx.stroke(); }
+    const showL = n.type === 'cat' || n.type === 'root' || (n.type === 'sub' && cam.s > 1.4) || (n.type === 'post' && (cam.s > 1.6 || on));
+    if (showL) { ctx.font = (n.type === 'post' ? '' : '600 ') + Math.round(11 * Math.min(1.6, p.sc)) + 'px ' + M.FONT; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText(n.type === 'post' ? M.short(n.label, 22) : n.label, p.x, p.y + p.r * 1.7 + 15 * Math.min(1.5, p.sc)); }
+    ctx.globalAlpha = 1;
+  });
+  if (focus != null) {
+    ctx.font = '600 12px ' + M.FONT; ctx.textAlign = 'center'; ctx.fillStyle = M.PALETTE[focus];
+    ctx.fillText('— ' + M.RAW[focus][0] + ' —', W / 2, 38);
+  }
+});
+</script></body></html>

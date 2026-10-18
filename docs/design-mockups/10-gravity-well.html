@@ -1,0 +1,74 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>10 Gravity Well</title></head><body>
+<script src="shared.js"></script>
+<script>
+const S = Muse.init({ bg: '#03040a', no: '10', title: 'Gravity Well', note: '마우스가 중력원입니다. 가까운 노드가 끌려오고 연결선이 늘어나며, 뒤의 별빛도 함께 휘어집니다. 놓으면 스프링처럼 제자리로 돌아갑니다. 중앙의 muse.log는 블랙홀 강착원반입니다.', hint: '마우스를 움직여 끌어당기기 · 누르고 있으면 더 강하게' });
+const { ctx } = S, M = Muse, R = M.rng(14);
+const field = Array.from({ length: 700 }, () => ({ x: R(), y: R(), b: .3 + R() * .7 }));
+const st = {}; M.nodes.forEach(n => (st[n.id] = { x: 0, y: 0, vx: 0, vy: 0, init: 0 }));
+let strength = 1;
+S.onClick(() => { if (S.hover && S.hover.type === 'post') S.go(S.hover); });
+function warp(x, y, m) {
+  const dx = x - m.x, dy = y - m.y, d2 = dx * dx + dy * dy + 900, k = 5200 * strength / d2;
+  return [x - dx * Math.min(.45, k * .01) * 1, y - dy * Math.min(.45, k * .01) * 1];
+}
+S.loop((t, dt) => {
+  const { W, H } = S, f = M.fit(S), m = S.mouse;
+  strength += ((m.down ? 2.4 : 1) - strength) * .1;
+  ctx.fillStyle = '#03040a'; ctx.fillRect(0, 0, W, H);
+  // 휘어지는 별빛
+  field.forEach(s => {
+    const [x, y] = warp(s.x * W, s.y * H, m);
+    ctx.fillStyle = 'rgba(205,220,255,' + s.b * .8 + ')'; ctx.fillRect(x, y, 1.2, 1.2);
+  });
+  // 렌즈 링
+  ctx.globalCompositeOperation = 'lighter';
+  M.glow(ctx, m.x, m.y, 90 * strength, '#7c8cff', .1);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = 'rgba(160,175,255,' + (.12 * strength) + ')'; ctx.lineWidth = 1;
+  [28, 46, 70].forEach(r => { ctx.beginPath(); ctx.arc(m.x, m.y, r * strength, 0, 6.2832); ctx.stroke(); });
+  // 물리
+  const P = {};
+  M.nodes.forEach(n => {
+    const s = st[n.id], bx = f.cx + n.ux * f.rx, by = f.cy + n.uy * f.ry;
+    if (!s.init) { s.x = bx; s.y = by; s.init = 1; }
+    const dx = m.x - s.x, dy = m.y - s.y, d = Math.hypot(dx, dy) + 1;
+    const pull = n.type === 'root' ? 0 : Math.min(1.8, 14000 * strength / (d * d + 2500));
+    let ax = (bx - s.x) * 22 + dx / d * pull * 260, ay = (by - s.y) * 22 + dy / d * pull * 260;
+    s.vx = (s.vx + ax * dt) * .86; s.vy = (s.vy + ay * dt) * .86; s.x += s.vx * dt * 60 * .1 * 6; s.y += s.vy * dt * 60 * .1 * 6;
+    P[n.id] = { x: s.x, y: s.y, r: n.type === 'root' ? 20 : n.type === 'cat' ? 11 : n.type === 'sub' ? 7 : 4.5, stretch: Math.min(1, Math.hypot(s.x - bx, s.y - by) / 60) };
+  });
+  S.hover = M.nearest(M.nodes, m.x, m.y, 14, n => P[n.id]);
+  S.cursor(S.hover && S.hover.type === 'post');
+  // 연결선(늘어남에 따라 가늘어지고 밝아짐)
+  M.edges.forEach(e => {
+    const a = P[e.a], b = P[e.b], str = Math.max(a.stretch, b.stretch), col = M.colorOf(M.byId[e.b]);
+    ctx.strokeStyle = M.rgba(col, (e.k === 'tag' ? .1 : .22) + str * .5); ctx.lineWidth = Math.max(.4, 1.4 - str);
+    ctx.setLineDash(e.k === 'tag' ? [2, 6] : []); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]);
+  });
+  // 블랙홀
+  const rt = P.root;
+  ctx.save(); ctx.translate(rt.x, rt.y);
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 3; i++) {
+    ctx.save(); ctx.rotate(-.35 + i * .02); ctx.scale(1, .28);
+    const g = ctx.createRadialGradient(0, 0, 24, 0, 0, 78 + i * 6);
+    g.addColorStop(0, 'rgba(255,200,120,0)'); g.addColorStop(.35, 'rgba(255,170,80,' + (.5 - i * .12) + ')'); g.addColorStop(.7, 'rgba(255,90,140,' + (.22 - i * .05) + ')'); g.addColorStop(1, 'rgba(120,80,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 80 + i * 6, 0, 6.2832); ctx.fill(); ctx.restore();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, 21, 0, 6.2832); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,225,170,.9)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(0, 0, 22, 0, 6.2832); ctx.stroke();
+  ctx.restore();
+  ctx.font = '600 12px ' + M.FONT; ctx.textAlign = 'center'; ctx.fillStyle = '#ffe9c4'; ctx.fillText('muse.log', rt.x, rt.y + 56);
+  M.nodes.forEach(n => {
+    if (n.type === 'root') return;
+    const p = P[n.id], col = M.colorOf(n), on = S.hover === n;
+    ctx.globalCompositeOperation = 'lighter'; M.glow(ctx, p.x, p.y, p.r * (4 + p.stretch * 3), col, .35 + p.stretch * .4); ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = n.type === 'post' ? '#fff' : col; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + p.stretch * .3), 0, 6.2832); ctx.fill();
+    if (n.type !== 'post' || on || p.stretch > .5) {
+      ctx.font = (n.type === 'post' ? '' : '600 ') + '11px ' + M.FONT; ctx.textAlign = 'center'; ctx.fillStyle = n.type === 'sub' ? '#cfc4ff' : '#fff';
+      ctx.fillText(n.type === 'post' ? M.short(n.label, 20) : n.label, p.x, p.y + p.r + 16);
+    }
+  });
+});
+</script></body></html>

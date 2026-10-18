@@ -1,0 +1,99 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>03 Orbit System</title></head><body>
+<script src="shared.js"></script>
+<script>
+const S = Muse.init({ bg: '#05070c', no: '03', title: 'Orbit System', note: 'muse.log가 항성, 카테고리가 행성, 서브카테고리가 위성, 글이 그 둘레를 도는 작은 별입니다. 화면을 살짝 기울여 원근감을 줬습니다.', hint: '마우스로 시점이 기울어집니다 · 글에 올리면 궤도가 멈춥니다' });
+const { ctx } = S, M = Muse, R = M.rng(5);
+const stars = M.stars(220, 11);
+const cats = M.nodes.filter(n => n.type === 'cat');
+const phase = {}; M.nodes.forEach(n => (phase[n.id] = n.ang + R() * .4));
+const orbitR = [.2, .34, .48, .62, .76];
+let P = [];
+function compute(t, tilt) {
+  const f = M.fit(S), sc = Math.min(S.W / 2, S.H / (2 * tilt)) * .92;
+  P = [];
+  const root = { n: M.byId.root, x: f.cx, y: f.cy, z: 0, s: 1, r: 30 };
+  P.push(root);
+  const at = (cx, cy, rad, a, t0) => ({ x: cx + Math.cos(a) * rad, y: cy + Math.sin(a) * rad * tilt, d: Math.sin(a) });
+  const by = {}; by.root = root;
+  cats.forEach((c, i) => {
+    const rad = orbitR[i] * sc, a = phase[c.id] + t * (.22 - i * .035);
+    const p = at(f.cx, f.cy, rad, a), s = 1 + p.d * .22;
+    by[c.id] = { n: c, x: p.x, y: p.y, s, r: 13 * s, orb: { cx: f.cx, cy: f.cy, rad } }; P.push(by[c.id]);
+  });
+  M.nodes.filter(n => n.type === 'sub').forEach((n, k) => {
+    const par = by[n.parent], a = phase[n.id] + t * (.55 + (k % 3) * .12);
+    const p = at(par.x, par.y, 66 * par.s, a), s = par.s * (1 + p.d * .15);
+    by[n.id] = { n, x: p.x, y: p.y, s, r: 7 * s, orb: { cx: par.x, cy: par.y, rad: 66 * par.s } }; P.push(by[n.id]);
+  });
+  M.nodes.filter(n => n.type === 'post').forEach((n, k) => {
+    const par = by[n.parent], a = phase[n.id] * 2 + t * (1.1 + (k % 4) * .2);
+    const p = at(par.x, par.y, 27 * par.s, a), s = par.s * (1 + p.d * .15);
+    by[n.id] = { n, x: p.x, y: p.y, s, r: 3.6 * s, orb: { cx: par.x, cy: par.y, rad: 27 * par.s } }; P.push(by[n.id]);
+  });
+  P.by = by;
+}
+let frozen = null, tshift = 0, tilt = .5;
+S.onClick(() => { if (S.hover && S.hover.n.type === 'post') S.go(S.hover.n); });
+let clock = 0;
+S.loop((t, dt) => {
+  const { W, H } = S;
+  tilt += ((.78 - S.mouse.ny * .22) - tilt) * Math.min(1, dt * 3);
+  if (!S.hover || S.hover.n.type !== 'post') clock += dt;
+  ctx.fillStyle = '#05070c'; ctx.fillRect(0, 0, W, H);
+  M.drawStars(S, stars, { parallax: 20 });
+  compute(clock, tilt);
+  S.hover = M.nearest(P, S.mouse.x, S.mouse.y, 10, p => p);
+  S.cursor(S.hover && S.hover.n.type === 'post');
+  const f = M.fit(S), sc = Math.min(W / 2, H / (2 * tilt)) * .92;
+  // 궤도선
+  ctx.lineWidth = 1;
+  orbitR.forEach((r, i) => {
+    const hot = S.hover && S.hover.n.ci === i;
+    ctx.strokeStyle = M.rgba(M.PALETTE[i], hot ? .5 : .13);
+    ctx.beginPath(); ctx.ellipse(f.cx, f.cy, r * sc, r * sc * tilt, 0, 0, 6.2832); ctx.stroke();
+  });
+  P.forEach(p => {
+    if (p.n.type === 'cat' || p.n.type === 'root') return;
+    const hot = S.hover && S.hover.n.ci === p.n.ci;
+    ctx.strokeStyle = M.rgba(M.colorOf(p.n), hot ? .35 : .08);
+    ctx.beginPath(); ctx.ellipse(p.orb.cx, p.orb.cy, p.orb.rad, p.orb.rad * tilt, 0, 0, 6.2832); ctx.stroke();
+  });
+  // 태그 연결(호버시)
+  if (S.hover && S.hover.n.type === 'post') {
+    M.edges.forEach(e => {
+      if (e.k !== 'tag' || (e.a !== S.hover.n.id && e.b !== S.hover.n.id)) return;
+      const a = P.by[e.a], b = P.by[e.b];
+      ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.setLineDash([3, 5]);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]);
+    });
+  }
+  // 항성
+  const rt = P[0];
+  ctx.globalCompositeOperation = 'lighter';
+  M.glow(ctx, rt.x, rt.y, 150, '#FBBF24', .22 + .04 * Math.sin(t * 2));
+  M.glow(ctx, rt.x, rt.y, 70, '#FFF1B8', .5);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#FFF6D8'; ctx.beginPath(); ctx.arc(rt.x, rt.y, 15, 0, 6.2832); ctx.fill();
+  ctx.font = '600 12px ' + M.FONT; ctx.textAlign = 'center'; ctx.fillStyle = '#e5e7eb'; ctx.fillText('muse.log', rt.x, rt.y + 36);
+  // 깊이 정렬 후 그리기
+  P.slice(1).sort((a, b) => a.y - b.y).forEach(p => {
+    const n = p.n, col = M.colorOf(n), hot = S.hover === p;
+    ctx.globalCompositeOperation = 'lighter';
+    M.glow(ctx, p.x, p.y, p.r * 3.4, col, n.type === 'post' ? .35 : .3);
+    ctx.globalCompositeOperation = 'source-over';
+    if (n.type === 'cat') {
+      const g = ctx.createRadialGradient(p.x - p.r * .4, p.y - p.r * .4, 1, p.x, p.y, p.r);
+      g.addColorStop(0, '#fff'); g.addColorStop(.35, col); g.addColorStop(1, M.rgba(col, .35));
+      ctx.fillStyle = g;
+    } else ctx.fillStyle = n.type === 'sub' ? M.rgba(col, .85) : '#fff';
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+    const catHot = S.hover && S.hover.n.ci === n.ci;
+    if (n.type === 'cat' || (n.type === 'sub' && catHot) || hot) {
+      ctx.font = (n.type === 'cat' ? '600 12px ' : '10.5px ') + M.FONT; ctx.textAlign = 'center';
+      ctx.fillStyle = n.type === 'cat' ? '#fff' : 'rgba(255,255,255,.62)';
+      if (hot && n.type === 'post') { ctx.fillStyle = '#fff'; ctx.font = '12px ' + M.FONT; }
+      ctx.fillText(n.label, p.x, p.y - p.r - 8);
+    }
+  });
+});
+</script></body></html>

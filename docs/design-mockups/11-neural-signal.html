@@ -1,0 +1,147 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>11 Neural Signal</title></head><body>
+<script src="shared.js"></script>
+<script>
+const S = Muse.init({ bg: '#080B10', no: '11', title: 'Neural Signal', note: '기존 뉴런 그래프 위에 작은 점들만 흩뿌렸습니다. 5초마다, 그리고 배경을 클릭할 때 마우스 위치에서 신호가 퍼져 주변 점들이 차례로 켜지고, 각 점에서 가까운 뉴런으로 신호가 건너간 뒤 시냅스를 타고 두 칸 번집니다.', hint: '5초마다 자동 발화 · 배경 클릭: 즉시 발화 · 글 클릭: 이동' });
+const { ctx } = S, M = Muse, R = M.rng(61);
+const MINT = '#00FFC8', VIO = '#A78BFA';
+const dots = Array.from({ length: 230 }, () => ({ x: R(), y: R(), r: .9 + R() * .8, a: .3 + R() * .22, tw: R() * 6.28, sp: .3 + R() * .6 }));
+const kind = n => n.type === 'root' || n.type === 'cat' ? MINT : n.type === 'sub' ? VIO : '#FFFFFF';
+const SPEED = 520, HOP = .5, DECAY = 1.5, NODE_R = 150, DOT_HOP = .35, NODE_HOPS = 2;
+const dacts = [], dsigs = [], dl = dots.map(() => 0);
+const waves = [], acts = [], sigs = [], rings = [], lit = {}, litE = {};
+M.nodes.forEach(n => (lit[n.id] = 0));
+let pos = {}, nextAuto = 5, tNow = 0;
+const edgeKey = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
+function emit(x, y) {
+  let nd = 1e9;
+  M.nodes.forEach(n => { const d = Math.hypot(pos[n.id].x - x, pos[n.id].y - y); if (d < nd) nd = d; });
+  const maxR = Math.max(260, nd), w = { x, y, t0: tNow, maxR, seen: new Set() };
+  waves.push(w);
+  dots.forEach((d, i) => {
+    const dd = Math.hypot(d.x * S.W - x, d.y * S.H - y);
+    if (dd <= maxR) dacts.push({ i, at: tNow + dd / SPEED, power: 1 - .5 * dd / maxR, w });
+  });
+}
+S.onClick((x, y) => {
+  if (S.hover && S.hover.type === 'post') return S.go(S.hover);
+  emit(x, y); nextAuto = tNow + 5;
+});
+S.loop((t, dt) => {
+  tNow = t;
+  const { W, H } = S, f = M.fit(S), m = S.mouse;
+  ctx.fillStyle = '#080B10'; ctx.fillRect(0, 0, W, H);
+  M.nodes.forEach(n => {
+    pos[n.id] = { x: f.cx + n.ux * f.rx, y: f.cy + n.uy * f.ry, r: n.type === 'root' ? 22 : n.type === 'cat' ? 13 : n.type === 'sub' ? 8 : 5 };
+  });
+  S.hover = M.nearest(M.nodes, m.x, m.y, 12, n => pos[n.id]);
+  S.cursor(S.hover && S.hover.type === 'post');
+  if (t >= nextAuto) { emit(m.x, m.y); nextAuto = t + 5; }
+
+  // 점 발화 -> 반경 안의 가까운 노드로 전파
+  for (let i = dacts.length - 1; i >= 0; i--) {
+    const a = dacts[i]; if (a.at > t) continue;
+    dacts.splice(i, 1);
+    const d = dots[a.i], dx = d.x * W, dy = d.y * H;
+    dl[a.i] = Math.max(dl[a.i], a.power);
+    M.nodes.map(n => ({ n, d: Math.hypot(pos[n.id].x - dx, pos[n.id].y - dy) })).filter(o => o.d <= NODE_R).sort((p, q) => p.d - q.d).slice(0, 2).forEach(o => {
+      if (a.w.seen.has(o.n.id)) return;
+      dsigs.push({ x: dx, y: dy, id: o.n.id, t0: t, p: a.power });
+      acts.push({ id: o.n.id, at: t + DOT_HOP, power: a.power * .9, hops: NODE_HOPS, w: a.w });
+    });
+  }
+  // 노드 발화 -> 시냅스를 따라 몇 단계 전파
+  for (let i = acts.length - 1; i >= 0; i--) {
+    const a = acts[i]; if (a.at > t) continue;
+    acts.splice(i, 1);
+    if (a.w.seen.has(a.id)) continue;
+    a.w.seen.add(a.id);
+    lit[a.id] = Math.max(lit[a.id], a.power); rings.push({ id: a.id, t0: t, p: a.power });
+    if (a.hops > 0) M.adj[a.id].forEach(nb => {
+      if (a.w.seen.has(nb) || M.edges.some(e => e.k === 'tag' && ((e.a === a.id && e.b === nb) || (e.b === a.id && e.a === nb)))) return;
+      sigs.push({ a: a.id, b: nb, t0: t, p: a.power * .7 });
+      acts.push({ id: nb, at: t + HOP, power: a.power * .62, hops: a.hops - 1, w: a.w });
+      litE[edgeKey(a.id, nb)] = Math.max(litE[edgeKey(a.id, nb)] || 0, a.power);
+    });
+  }
+
+  // 배경 점: 발화한 점은 밝아지고 가까운 노드로 신호를 보냄
+  dots.forEach((d, i) => {
+    const x = d.x * W, y = d.y * H, l = dl[i]; dl[i] = Math.max(0, l - dt * 1.1);
+    if (l > .05) { ctx.globalCompositeOperation = 'lighter'; M.glow(ctx, x, y, 10 + l * 14, MINT, l * .55); ctx.globalCompositeOperation = 'source-over'; }
+    const al = d.a * (.8 + .2 * Math.sin(t * d.sp + d.tw)) + l * .6;
+    ctx.fillStyle = 'rgba(170,235,255,' + Math.min(1, al) + ')';
+    ctx.beginPath(); ctx.arc(x, y, d.r + l * 1.3, 0, 6.2832); ctx.fill();
+  });
+  for (let i = dsigs.length - 1; i >= 0; i--) {
+    const g = dsigs[i], u = (t - g.t0) / DOT_HOP;
+    if (u >= 1) { dsigs.splice(i, 1); continue; }
+    const p = pos[g.id], e = 1 - Math.pow(1 - u, 2), x = g.x + (p.x - g.x) * e, y = g.y + (p.y - g.y) * e;
+    ctx.strokeStyle = M.rgba(MINT, .18 * g.p * (1 - u)); ctx.lineWidth = .8;
+    ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    ctx.globalCompositeOperation = 'lighter'; M.glow(ctx, x, y, 8, MINT, .85 * g.p); ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(255,255,255,' + (.9 * g.p) + ')'; ctx.beginPath(); ctx.arc(x, y, 1.6, 0, 6.2832); ctx.fill();
+  }
+
+  // 파면 링
+  for (let i = waves.length - 1; i >= 0; i--) {
+    const w = waves[i], r = (t - w.t0) * SPEED;
+    if (r > w.maxR) { waves.splice(i, 1); continue; }
+    const k = 1 - r / w.maxR;
+    ctx.strokeStyle = M.rgba(MINT, .22 * k * k); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(w.x, w.y, r, 0, 6.2832); ctx.stroke();
+    if (r < 120) { ctx.globalCompositeOperation = 'lighter'; M.glow(ctx, w.x, w.y, 26 * (1 - r / 120) + 4, MINT, .5 * (1 - r / 120)); ctx.globalCompositeOperation = 'source-over'; }
+  }
+
+  // 시냅스
+  M.edges.forEach(e => {
+    const a = pos[e.a], b = pos[e.b], k = edgeKey(e.a, e.b), l = litE[k] || 0; litE[k] = Math.max(0, l - dt * DECAY * .8);
+    const mx = (a.x + b.x) / 2 - (b.y - a.y) * .08, my = (a.y + b.y) / 2 + (b.x - a.x) * .08;
+    e.q = { mx, my };
+    ctx.strokeStyle = e.k === 'tag' ? M.rgba(VIO, .1 + l * .4) : M.rgba(MINT, .16 + l * .5);
+    ctx.lineWidth = .8 + l * .9; ctx.setLineDash(e.k === 'tag' ? [2, 6] : []);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(mx, my, b.x, b.y); ctx.stroke(); ctx.setLineDash([]);
+  });
+
+  // 이동하는 신호 (짧은 꼬리)
+  for (let i = sigs.length - 1; i >= 0; i--) {
+    const s = sigs[i], u = (t - s.t0) / HOP;
+    if (u >= 1) { sigs.splice(i, 1); continue; }
+    const e = M.edges.find(x => (x.a === s.a && x.b === s.b) || (x.a === s.b && x.b === s.a));
+    const A = pos[s.a], B = pos[s.b], q = e.q;
+    const at = uu => { const w = 1 - uu; return [w * w * A.x + 2 * w * uu * q.mx + uu * uu * B.x, w * w * A.y + 2 * w * uu * q.my + uu * uu * B.y]; };
+    const ease = 1 - Math.pow(1 - u, 2);
+    for (let k = 0; k < 6; k++) {
+      const [x, y] = at(Math.max(0, ease - k * .035));
+      ctx.globalCompositeOperation = 'lighter';
+      M.glow(ctx, x, y, 9 - k, MINT, s.p * (1 - k / 6) * .8);
+    }
+    const [hx, hy] = at(ease);
+    ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = 'rgba(255,255,255,' + (.9 * s.p) + ')';
+    ctx.beginPath(); ctx.arc(hx, hy, 1.8, 0, 6.2832); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 뉴런
+  M.nodes.forEach(n => {
+    const p = pos[n.id], col = kind(n), l = lit[n.id]; lit[n.id] = Math.max(0, l - dt * DECAY);
+    ctx.globalCompositeOperation = 'lighter'; M.glow(ctx, p.x, p.y, p.r * (2.8 + l * 3.2), col, .14 + l * .55); ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = n.type === 'post' ? M.rgba('#ffffff', .75 + l * .25) : '#07090e';
+    ctx.strokeStyle = M.rgba(col, .55 + l * .45); ctx.lineWidth = n.type === 'post' ? 0 : 1.8;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + l * .12), 0, 6.2832); ctx.fill(); if (n.type !== 'post') ctx.stroke();
+    if (n.type === 'root') { ctx.fillStyle = M.rgba(MINT, .7 + l * .3); ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, 6.2832); ctx.fill(); }
+    if (n.type !== 'post' || S.hover === n) {
+      ctx.font = (n.type === 'root' ? '600 14px ' : n.type === 'cat' ? '600 13px ' : '500 11px ') + M.FONT; ctx.textAlign = 'center';
+      ctx.fillStyle = n.type === 'sub' ? '#c4b5fd' : '#F0F0F0'; ctx.fillText(n.label, p.x, p.y + p.r + 16);
+    }
+  });
+  for (let i = rings.length - 1; i >= 0; i--) {
+    const r = rings[i], u = (t - r.t0) / .7; if (u >= 1) { rings.splice(i, 1); continue; }
+    const p = pos[r.id]; ctx.strokeStyle = M.rgba(kind(M.byId[r.id]), (1 - u) * .5 * r.p); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 3 + u * 16, 0, 6.2832); ctx.stroke();
+  }
+  // 다음 발화까지 (아주 옅게)
+  const prog = 1 - Math.max(0, nextAuto - t) / 5;
+  ctx.strokeStyle = M.rgba(MINT, .25); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(m.x, m.y, 9, -Math.PI / 2, -Math.PI / 2 + prog * 6.2832); ctx.stroke();
+});
+</script></body></html>

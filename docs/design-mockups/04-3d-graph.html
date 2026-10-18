@@ -1,0 +1,76 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>04 3D Graph</title></head><body>
+<script src="shared.js"></script>
+<script>
+const S = Muse.init({ bg: '#05070c', no: '04', title: '3D Star Graph', note: '그래프가 진짜 3차원 공간에 떠 있습니다. 드래그로 돌리고, 놓으면 관성으로 천천히 돕니다. 멀리 있는 별은 흐리고 작아집니다.', hint: '드래그: 회전 · 휠: 확대/축소 · 별 클릭: 글로 이동' });
+const { ctx } = S, M = Muse, R = M.rng(9);
+// 3D 좌표: 카테고리는 구 위(피보나치), 서브/글은 부모 주변에 바깥쪽으로
+const cats = M.nodes.filter(n => n.type === 'cat'), P3 = {};
+P3.root = [0, 0, 0];
+cats.forEach((c, i) => {
+  const y = 1 - (i + .5) / cats.length * 2, r = Math.sqrt(1 - y * y), a = i * 2.399963;
+  P3[c.id] = [Math.cos(a) * r * 150, y * 150, Math.sin(a) * r * 150];
+});
+function child(n, dist) {
+  const p = P3[n.parent], L = Math.hypot(...p) || 1;
+  const dir = p.map(v => v / L), j = [R() - .5, R() - .5, R() - .5].map(v => v * 1.1);
+  const d = dir.map((v, k) => v + j[k]), dl = Math.hypot(...d);
+  return p.map((v, k) => v + d[k] / dl * dist);
+}
+M.nodes.filter(n => n.type === 'sub').forEach(n => (P3[n.id] = child(n, 85)));
+M.nodes.filter(n => n.type === 'post').forEach(n => (P3[n.id] = child(n, 62)));
+const dust = Array.from({ length: 420 }, () => { const v = [R() - .5, R() - .5, R() - .5], l = Math.hypot(...v) || 1, rad = 160 + R() * 330; return v.map(x => x / l * rad); });
+let ry = .6, rx = -.25, vy = .0035, vx = 0, zoom = 1, drag = null;
+S.canvas.addEventListener('mousedown', e => (drag = { x: e.clientX, y: e.clientY, moved: 0 }));
+addEventListener('mouseup', () => { setTimeout(() => (drag = null), 0); });
+addEventListener('mousemove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; drag.moved += Math.abs(dx) + Math.abs(dy);
+  vy = dx * .0035; vx = dy * .0035; ry += vy; rx += vx;
+});
+addEventListener('wheel', e => { zoom = Math.max(.6, Math.min(2, zoom - e.deltaY * .001)); }, { passive: true });
+let proj = [];
+function project(v, f) {
+  let [x, y, z] = v;
+  const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx);
+  let x1 = x * cy + z * sy, z1 = -x * sy + z * cy;
+  let y1 = y * cx - z1 * sx, z2 = y * sx + z1 * cx;
+  const fl = 620, s = fl / (fl + z2 + 300) * zoom * f.k;
+  return { x: f.cx + x1 * s, y: f.cy + y1 * s, s, z: z2 };
+}
+S.onClick(() => { if (S.hover && S.hover.n.type === 'post' && (!drag || drag.moved < 4)) S.go(S.hover.n); });
+S.loop((t, dt) => {
+  const { W, H } = S;
+  if (!drag) { ry += vy; rx += vx; vy += (.0025 - vy) * .02; vx *= .95; rx += (-.25 - rx) * .004; }
+  const f = { cx: W / 2, cy: H / 2, k: Math.min(W, H) / 560 * 1.35 };
+  ctx.fillStyle = '#05070c'; ctx.fillRect(0, 0, W, H);
+  M.glow(ctx, W / 2, H / 2, Math.min(W, H) * .55, '#1d3b6b', .28);
+  dust.forEach(v => {
+    const p = project(v, f), a = Math.max(.05, Math.min(.5, .5 - p.z / 900));
+    ctx.fillStyle = 'rgba(190,210,255,' + a + ')'; ctx.fillRect(p.x, p.y, 1.2, 1.2);
+  });
+  proj = M.nodes.map(n => { const p = project(P3[n.id], f); p.n = n; p.r = (n.type === 'root' ? 11 : n.type === 'cat' ? 9 : n.type === 'sub' ? 6 : 3.8) * p.s * zoom; return p; });
+  const pm = {}; proj.forEach(p => (pm[p.n.id] = p));
+  S.hover = M.nearest(proj, S.mouse.x, S.mouse.y, 12, p => p);
+  S.cursor(!!S.hover);
+  const hn = S.hover ? new Set([S.hover.n.id, ...M.adj[S.hover.n.id]]) : null;
+  const fog = z => Math.max(.12, Math.min(1, 1 - (z + 150) / 520));
+  M.edges.forEach(e => {
+    const a = pm[e.a], b = pm[e.b], z = (a.z + b.z) / 2;
+    const lit = !hn || (hn.has(e.a) && hn.has(e.b));
+    ctx.strokeStyle = e.k === 'tag' ? M.rgba('#ffffff', .1 * fog(z) * (lit ? 2.2 : 1)) : M.rgba(M.colorOf(M.byId[e.b]), (lit ? .55 : .1) * fog(z));
+    ctx.lineWidth = e.k === 'tag' ? .6 : 1;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  });
+  proj.slice().sort((a, b) => b.z - a.z).forEach(p => {
+    const n = p.n, col = M.colorOf(n), fg = fog(p.z), dim = hn && !hn.has(n.id) ? .3 : 1;
+    ctx.globalAlpha = fg * dim;
+    ctx.globalCompositeOperation = 'lighter'; M.glow(ctx, p.x, p.y, p.r * 4, col, .4); ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = n.type === 'post' ? '#fff' : col; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+    if (n.type !== 'post' || S.hover === p) {
+      ctx.font = (n.type === 'cat' || n.type === 'root' ? '600 ' : '') + Math.round(10 + p.s * 3) + 'px ' + M.FONT; ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff'; ctx.fillText(n.label, p.x, p.y - p.r - 7);
+    }
+    ctx.globalAlpha = 1;
+  });
+});
+</script></body></html>

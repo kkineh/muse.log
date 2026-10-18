@@ -1,0 +1,84 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>05 Galaxy Spiral</title></head><body>
+<script src="shared.js"></script>
+<script>
+const S = Muse.init({ bg: '#04050a', no: '05', title: 'Galaxy Spiral', note: '블로그 전체가 나선은하입니다. 카테고리마다 나선팔이 하나씩 뻗고, 글은 그 팔 위에 박힌 밝은 별입니다. 은하는 천천히 돌고, 마우스로 기울기가 바뀝니다.', hint: '팔 위에 마우스 · 별 클릭: 글로 이동' });
+const { ctx } = S, M = Muse, R = M.rng(33);
+const N = M.RAW.length;
+// 은하 먼지: 로그 나선
+const dust = [];
+for (let i = 0; i < 2600; i++) {
+  const arm = i % N, u = Math.pow(R(), .8), rad = .06 + u * .94;
+  const a = (arm / N) * 6.2832 + rad * 3.6 + (R() - .5) * (.55 - rad * .25);
+  dust.push({ a, rad: rad + (R() - .5) * .04, z: (R() - .5) * .05 * (1 - rad), arm, s: .5 + R() * 1.3, b: .3 + R() * .7 });
+}
+// 노드를 팔 위로 재배치: 카테고리=팔 시작, 서브/글=팔을 따라 바깥
+const place = {};
+M.nodes.forEach(n => {
+  if (n.type === 'root') { place[n.id] = { rad: 0, a: 0 }; return; }
+  const arm = n.ci, base = (arm / N) * 6.2832, rad = n.type === 'cat' ? .24 : n.type === 'sub' ? .5 : .78 + (n.ang % .3) * .3;
+  const off = n.type === 'post' ? (n.ang - (-Math.PI / 2 + n.ci * 6.2832 / N)) * .7 : 0;
+  place[n.id] = { rad, a: base + rad * 3.6 + off };
+});
+let rot = 0, tilt = .5, tx = .5, hotArm = -1, reveal = new Array(N).fill(0);
+let pos = {};
+function nodePos(n, f, t) {
+  const p = place[n.id], a = p.a + rot;
+  const x = Math.cos(a) * p.rad, y = Math.sin(a) * p.rad;
+  return { x: f.cx + x * f.rx * 1.02, y: f.cy + y * f.rx * tilt, d: y };
+}
+S.onClick(() => { if (S.hover && S.hover.type === 'post') S.go(S.hover); });
+S.loop((t, dt) => {
+  const { W, H } = S;
+  rot += dt * .05;
+  tx = .42 + (S.mouse.ny + 1) * .17; tilt += (tx - tilt) * Math.min(1, dt * 3);
+  const f = { cx: W / 2, cy: H / 2, rx: Math.min(W * .46, H * .46 / tilt * .8) };
+  ctx.fillStyle = '#04050a'; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  M.glow(ctx, f.cx, f.cy, f.rx * .55, '#ffcf8a', .28);
+  M.glow(ctx, f.cx, f.cy, f.rx * 1.1, '#5b6cff', .09);
+  // 먼지
+  dust.forEach(d => {
+    const a = d.a + rot * (1.2 - d.rad * .6), x = Math.cos(a) * d.rad, y = Math.sin(a) * d.rad;
+    const sx = f.cx + x * f.rx, sy = f.cy + y * f.rx * tilt - d.z * f.rx;
+    const hot = hotArm === d.arm ? .55 : 0;
+    const col = d.rad < .25 ? '255,225,170' : d.arm % 2 ? '160,190,255' : '200,170,255';
+    ctx.fillStyle = 'rgba(' + col + ',' + Math.min(1, (.22 + d.b * .4) * (1.2 - d.rad * .6) + hot) + ')';
+    ctx.fillRect(sx, sy, d.s, d.s);
+  });
+  ctx.globalCompositeOperation = 'source-over';
+  M.nodes.forEach(n => (pos[n.id] = Object.assign(nodePos(n, f, t), { r: n.type === 'post' ? 5 : n.type === 'cat' ? 8 : n.type === 'sub' ? 5 : 12 })));
+  S.hover = M.nearest(M.nodes, S.mouse.x, S.mouse.y, 14, n => pos[n.id]);
+  S.cursor(S.hover && S.hover.type === 'post');
+  hotArm = S.hover && S.hover.ci >= 0 ? S.hover.ci : -1;
+  reveal.forEach((v, i) => (reveal[i] += ((hotArm === i ? 1 : 0) - v) * Math.min(1, dt * 6)));
+  // 팔 위 연결선
+  M.edges.forEach(e => {
+    if (e.k !== 'tree' || e.a === 'root') return;
+    const a = pos[e.a], b = pos[e.b], k = reveal[M.byId[e.b].ci];
+    ctx.strokeStyle = M.rgba(M.colorOf(M.byId[e.b]), .1 + .55 * k); ctx.lineWidth = .8 + k;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  });
+  if (S.hover && S.hover.type === 'post') M.edges.forEach(e => {
+    if (e.k !== 'tag' || (e.a !== S.hover.id && e.b !== S.hover.id)) return;
+    const a = pos[e.a], b = pos[e.b];
+    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.setLineDash([3, 5]);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]);
+  });
+  M.nodes.forEach(n => {
+    const p = pos[n.id], col = M.colorOf(n), k = n.ci >= 0 ? reveal[n.ci] : 0;
+    if (n.type === 'root') {
+      ctx.globalCompositeOperation = 'lighter'; M.glow(ctx, p.x, p.y, 40, '#fff2cf', .8); ctx.globalCompositeOperation = 'source-over';
+      ctx.font = '600 11px ' + M.FONT; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText('muse.log', p.x, p.y + 30);
+      return;
+    }
+    ctx.globalCompositeOperation = 'lighter'; M.glow(ctx, p.x, p.y, p.r * (3.5 + k * 3), col, .45 + k * .3); ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, n.type === 'post' ? 2.6 : n.type === 'sub' ? 3 : 4, 0, 6.2832); ctx.fill();
+    if (n.type !== 'post') M.sparkle(ctx, p.x, p.y, p.r * 1.6, col, .6);
+    if (n.type === 'cat' || (n.type === 'post' && (k > .5 || S.hover === n)) || (n.type === 'sub' && k > .5)) {
+      ctx.font = (n.type === 'cat' ? '600 12px ' : '11px ') + M.FONT; ctx.textAlign = 'center';
+      ctx.fillStyle = n.type === 'cat' ? col : 'rgba(255,255,255,.85)';
+      ctx.fillText(n.type === 'post' ? M.short(n.label, 20) : n.label, p.x, p.y - p.r - 6);
+    }
+  });
+});
+</script></body></html>

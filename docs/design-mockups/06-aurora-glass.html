@@ -1,0 +1,81 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>06 Aurora Glass</title></head><body>
+<script src="shared.js"></script>
+<script>
+const S = Muse.init({ bg: '#060912', no: '06', title: 'Aurora Glass', note: '지금처럼 글 제목이 보이는 카드형 노드를 유지하되, 뒤에 오로라가 흐르고 카드는 유리처럼 비칩니다. 카드가 커서 쪽으로 살짝 끌려옵니다.', hint: '카드에 마우스 · 클릭하면 글로 이동' });
+const { ctx } = S, M = Muse;
+const stars = M.stars(140, 17);
+const cur = {}; M.nodes.forEach(n => (cur[n.id] = { x: 0, y: 0, ox: 0, oy: 0 }));
+function aurora(t, y0, hue, amp, a) {
+  const { W, H } = S;
+  for (let k = 0; k < 3; k++) {
+    ctx.beginPath(); ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 24) {
+      const y = H * y0 + Math.sin(x * .004 + t * .25 + k + hue) * amp + Math.sin(x * .011 - t * .18 + k * 2) * amp * .5;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, H); ctx.closePath();
+    const g = ctx.createLinearGradient(0, H * (y0 - .2), 0, H * (y0 + .35));
+    g.addColorStop(0, 'hsla(' + hue + ',90%,60%,' + a + ')'); g.addColorStop(1, 'hsla(' + (hue + 40) + ',90%,50%,0)');
+    ctx.fillStyle = g; ctx.fill();
+  }
+}
+function box(n) {
+  const sz = n.type === 'root' ? 15 : n.type === 'cat' ? 13 : n.type === 'sub' ? 11 : 10.5;
+  const txt = n.type === 'post' ? M.short(n.label, 15) : n.label;
+  ctx.font = (n.type === 'post' ? '' : '600 ') + sz + 'px ' + M.FONT;
+  const w = ctx.measureText(txt).width + (n.type === 'post' ? 22 : 32), h = n.type === 'post' ? 26 : n.type === 'root' ? 44 : 34;
+  return { txt, w, h, sz };
+}
+S.onClick(() => { if (S.hover && S.hover.type === 'post') S.go(S.hover); });
+const hit = {};
+S.loop((t, dt) => {
+  const { W, H } = S, f = M.fit(S);
+  ctx.fillStyle = '#060912'; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  aurora(t, .30, 165, 60, .13); aurora(t, .55, 265, 80, .1); aurora(t, .78, 195, 50, .08);
+  ctx.globalCompositeOperation = 'source-over';
+  M.drawStars(S, stars, { parallax: 10, alpha: .7 });
+  M.nodes.forEach(n => {
+    const c = cur[n.id], bx = f.cx + n.ux * f.rx, by = f.cy + n.uy * f.ry;
+    const dx = S.mouse.x - bx, dy = S.mouse.y - by, d = Math.hypot(dx, dy), pull = n.type === 'root' ? 0 : Math.max(0, 1 - d / 220) * 16;
+    const tx = bx + (d ? dx / d * pull : 0) + Math.sin(t * .5 + n.ang * 4) * 4, ty = by + (d ? dy / d * pull : 0) + Math.cos(t * .45 + n.ang * 3) * 4;
+    c.x += (tx - c.x) * Math.min(1, dt * 6) || 0; c.y += (ty - c.y) * Math.min(1, dt * 6) || 0;
+    if (!c.init) { c.x = bx; c.y = by; c.init = 1; }
+    const b = box(n); hit[n.id] = { x: c.x, y: c.y, r: Math.max(b.w, b.h) / 2 * .8, b };
+  });
+  S.hover = M.nearest(M.nodes, S.mouse.x, S.mouse.y, 6, n => {
+    const c = cur[n.id], b = hit[n.id].b; const dx = Math.max(0, Math.abs(S.mouse.x - c.x) - b.w / 2), dy = Math.max(0, Math.abs(S.mouse.y - c.y) - b.h / 2);
+    return dx === 0 && dy === 0 ? { x: S.mouse.x, y: S.mouse.y } : { x: S.mouse.x + 999, y: 0 };
+  });
+  S.cursor(S.hover && S.hover.type === 'post');
+  const hn = S.hover ? new Set([S.hover.id, ...M.adj[S.hover.id]]) : null;
+  M.edges.forEach(e => {
+    const a = cur[e.a], b = cur[e.b], lit = !hn || (hn.has(e.a) && hn.has(e.b));
+    const g = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+    const ca = M.colorOf(M.byId[e.a]), cb = M.colorOf(M.byId[e.b]);
+    const al = e.k === 'tag' ? .22 : .42;
+    g.addColorStop(0, M.rgba(ca, lit ? al : .05)); g.addColorStop(1, M.rgba(cb, lit ? al : .05));
+    ctx.strokeStyle = g; ctx.lineWidth = e.k === 'tag' ? 1 : 1.6; ctx.setLineDash(e.k === 'tag' ? [2, 6] : []);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y);
+    ctx.bezierCurveTo(a.x + (b.x - a.x) * .5, a.y, a.x + (b.x - a.x) * .5, b.y, b.x, b.y); ctx.stroke(); ctx.setLineDash([]);
+  });
+  M.nodes.forEach(n => {
+    const c = cur[n.id], { b } = hit[n.id], col = M.colorOf(n), on = S.hover === n, dim = hn && !hn.has(n.id) ? .35 : 1;
+    const x = c.x - b.w / 2, y = c.y - b.h / 2;
+    ctx.globalAlpha = dim;
+    ctx.shadowColor = M.rgba(col, on ? .7 : .28); ctx.shadowBlur = on ? 28 : 16;
+    M.rr(ctx, x, y, b.w, b.h, b.h / 2);
+    const g = ctx.createLinearGradient(x, y, x, y + b.h);
+    g.addColorStop(0, 'rgba(255,255,255,' + (on ? .2 : .12) + ')'); g.addColorStop(1, 'rgba(255,255,255,.03)');
+    ctx.fillStyle = g; ctx.fill(); ctx.shadowBlur = 0;
+    ctx.strokeStyle = M.rgba(col, on ? .95 : .5); ctx.lineWidth = 1; ctx.stroke();
+    // 상단 하이라이트
+    M.rr(ctx, x + 6, y + 2, b.w - 12, b.h / 2 - 2, b.h / 4);
+    ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fill();
+    ctx.font = (n.type === 'post' ? '' : '600 ') + b.sz + 'px ' + M.FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = n.type === 'sub' ? '#d8ccff' : '#f4f6fa'; ctx.fillText(b.txt, c.x, c.y + .5); ctx.textBaseline = 'alphabetic';
+    if (on && n.type === 'post') { ctx.font = '11px ' + M.FONT; ctx.fillStyle = '#fff'; ctx.fillText(n.label, c.x, y - 8); }
+    ctx.globalAlpha = 1;
+  });
+});
+</script></body></html>
