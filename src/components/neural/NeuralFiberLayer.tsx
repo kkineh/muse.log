@@ -597,7 +597,7 @@ export const NeuralFiberLayer = forwardRef<SignalLayerHandle, NeuralFiberLayerPr
           litEdges.delete(e);
           return;
         }
-        ctx.strokeStyle = rgba(sig, Math.min(0.24, e.lit * 0.22));
+        ctx.strokeStyle = rgba(sig, Math.min(0.17, e.lit * 0.16));
         ctx.lineWidth = Math.max(0.6, (classWidth[e.cls] + e.lit * 0.35) * zoomW);
         ctx.beginPath();
         ctx.moveTo(tr.x + e.pts[0] * tr.k, tr.y + e.pts[1] * tr.k);
@@ -620,7 +620,7 @@ export const NeuralFiberLayer = forwardRef<SignalLayerHandle, NeuralFiberLayerPr
         for (let j = 1; j <= steps; j++) {
           const q = pointAt(p.e, Math.max(0, s - tail * (1 - j / steps)), p.fwd);
           const f = j / steps;
-          ctx.strokeStyle = rgba(sig, 0.42 * p.p * f * f);
+          ctx.strokeStyle = rgba(sig, 0.3 * p.p * f * f);
           ctx.lineWidth = (0.6 + 1.7 * f) * Math.min(1, Math.max(tr.k, 0.6));
           ctx.beginPath();
           ctx.moveTo(tr.x + prev[0] * tr.k, tr.y + prev[1] * tr.k);
@@ -629,7 +629,7 @@ export const NeuralFiberLayer = forwardRef<SignalLayerHandle, NeuralFiberLayerPr
           prev = q;
         }
         ctx.globalCompositeOperation = 'lighter';
-        glow(ctx, tr.x + prev[0] * tr.k, tr.y + prev[1] * tr.k, 7, sig, 0.26 * p.p);
+        glow(ctx, tr.x + prev[0] * tr.k, tr.y + prev[1] * tr.k, 7, sig, 0.18 * p.p);
         ctx.globalCompositeOperation = 'source-over';
       }
 
@@ -648,15 +648,15 @@ export const NeuralFiberLayer = forwardRef<SignalLayerHandle, NeuralFiberLayerPr
           const f = s.flash;
           if (f > 0.03) {
             ctx.globalCompositeOperation = 'lighter';
-            glow(ctx, x, y, 10 + f * 16, sig, 0.04 + f * 0.25);
+            glow(ctx, x, y, 10 + f * 16, sig, 0.03 + f * 0.18);
             ctx.globalCompositeOperation = 'source-over';
           }
-          ctx.fillStyle = rgba(dotColor, 0.07 + f * 0.32);
+          ctx.fillStyle = rgba(dotColor, 0.07 + f * 0.23);
           ctx.beginPath();
           ctx.arc(x, y, s.r * nodeScale + f * 1.2, 0, Math.PI * 2);
           ctx.fill();
           if (f > 0.05) {
-            ctx.strokeStyle = rgba(sig, f * 0.2);
+            ctx.strokeStyle = rgba(sig, f * 0.14);
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.arc(x, y, s.r * nodeScale + 4 + (1 - f) * 16, 0, Math.PI * 2);
@@ -668,7 +668,7 @@ export const NeuralFiberLayer = forwardRef<SignalLayerHandle, NeuralFiberLayerPr
           const x = tr.x + t.x * tr.k;
           const y = tr.y + t.y * tr.k;
           if (x < -10 || x > w + 10 || y < -10 || y > h + 10) continue;
-          ctx.fillStyle = rgba(dotColor, 0.065 + t.lit * 0.28);
+          ctx.fillStyle = rgba(dotColor, 0.065 + t.lit * 0.2);
           ctx.beginPath();
           ctx.arc(x, y, 1.35 * nodeScale + t.lit * 0.6, 0, Math.PI * 2);
           ctx.fill();
