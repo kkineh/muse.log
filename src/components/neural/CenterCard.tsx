@@ -92,6 +92,26 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
     }
   };
 
+  // 모바일 키보드가 올라오면 보이는 영역(visualViewport)에 채팅창을 맞춤
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (isCollapsed || !vv) return;
+    const root = document.documentElement;
+    const sync = () => {
+      root.style.setProperty('--vv-h', `${vv.height}px`);
+      root.style.setProperty('--vv-top', `${vv.offsetTop}px`);
+    };
+    sync();
+    vv.addEventListener('resize', sync);
+    vv.addEventListener('scroll', sync);
+    return () => {
+      vv.removeEventListener('resize', sync);
+      vv.removeEventListener('scroll', sync);
+      root.style.removeProperty('--vv-h');
+      root.style.removeProperty('--vv-top');
+    };
+  }, [isCollapsed]);
+
   // 접힌 상태에서 input 클릭 시 펼치기
   const handleInputFocus = () => {
     if (isCollapsed) {
@@ -111,7 +131,7 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
       className={`fixed z-50 md:transition-all md:duration-500 md:ease-in-out ${
         isCollapsed
           ? 'bottom-3 md:bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] md:w-[600px]'
-          : 'top-0 left-0 w-full md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[60%]'
+          : 'top-[var(--vv-top,0px)] left-0 w-full md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[60%]'
       }`}
       style={{
         fontFamily: 'var(--font-inter), sans-serif',
@@ -119,7 +139,7 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
     >
       {/* Card content */}
       <div className={`relative flex flex-col neural-center-card max-md:transition-none! ${
-        isCollapsed ? 'h-[80px] neural-card-collapsed' : 'h-[100dvh] max-md:rounded-none max-md:border-0 md:h-[min(640px,calc(100dvh-4rem))]'
+        isCollapsed ? 'h-[80px] neural-card-collapsed' : 'h-[var(--vv-h,100dvh)] max-md:rounded-none! max-md:border-0! md:h-[min(640px,calc(100dvh-4rem))]'
       }`}>
           {/* Collapse/Expand button - only show when expanded */}
           {!isCollapsed && (
