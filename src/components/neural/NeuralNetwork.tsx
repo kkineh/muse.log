@@ -4,7 +4,7 @@ import { useMemo, useRef, useEffect, useCallback, useState } from 'react';
 import * as d3Selection from 'd3-selection';
 import * as d3Drag from 'd3-drag';
 import { useD3ForceSimulation } from '@/hooks/useD3ForceSimulation';
-import { NeuralFiberLayer, type SignalLayerHandle } from './NeuralFiberLayer';
+import { NeuralSignalLayer, type SignalLayerHandle } from './NeuralSignalLayer';
 import { hexA, type NeuralPalette } from '@/lib/neural-palettes';
 import { FIELD_H, FIELD_W, MIN_ZOOM_FULL } from '@/lib/neural-field';
 import { flattenNeuralGraph } from '@/lib/neural-graph-builder';
@@ -498,7 +498,7 @@ export function NeuralNetwork({
             }}
           />
 
-          <NeuralFiberLayer ref={signalRef} nodes={allNodes} links={links} transformRef={transformRef} palette={palette} />
+          <NeuralSignalLayer ref={signalRef} nodes={allNodes} links={links} transformRef={transformRef} palette={palette} />
         </>
       )}
     </div>

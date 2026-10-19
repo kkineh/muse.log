@@ -23,17 +23,17 @@ interface NeuralSignalLayerProps {
   palette: NeuralPalette;
 }
 
-const SPEED = 220; // 점 사이 전파 속도 (월드 px/s, 줌에 비례해 화면 속도가 바뀜)
+const SPEED = 125; // 점 사이 전파 속도 (월드 px/s, 줌에 비례해 화면 속도가 바뀜)
 const SEED_R = 60; // 클릭 지점에서 처음 켜지는 점의 반경 (월드 px)
 const DOT_DECAY = 0.65; // 점을 한 칸 건널 때마다 줄어드는 세기
 const MIN_POWER = 0.3; // 이보다 약해지면 전파가 멈춤
 const NODE_TOUCH = 16; // 켜진 점이 노드 박스에 이만큼 가까우면 노드로 전파 (월드 px)
-const DOT_HOP = 0.7; // 점 → 노드 이동 시간 (s)
-const EDGE_HOP = 1.0; // 노드 → 노드 이동 시간 (s)
+const DOT_HOP = 1.2; // 점 → 노드 이동 시간 (s)
+const EDGE_HOP = 1.7; // 노드 → 노드 이동 시간 (s)
 const NODE_HOPS = 2; // 노드에서 시냅스를 따라 번지는 단계 수
 const DECAY = 0.9;
-const AUTO_MIN_MS = 500;
-const AUTO_MAX_MS = 3000;
+const AUTO_MIN_MS = 4000;
+const AUTO_MAX_MS = 7000;
 const nextAutoDelay = () => AUTO_MIN_MS + Math.random() * (AUTO_MAX_MS - AUTO_MIN_MS);
 const DOT_LINK_R = 110; // 점끼리 연결선이 생기는 최대 거리 (px)
 const DOT_LINK_N = 3; // 점 하나가 이어지는 가까운 점 수
@@ -48,7 +48,7 @@ interface SNode {
   color: string;
 }
 
-interface Wave { seen: Set<string>; touched: Set<string>; seenDots: Set<number> }
+interface Wave { seen: Set<string>; touched: Set<string>; seenDots: Set<number>; toNodes: boolean }
 
 function nodeColor(n: NeuralNode, palette: NeuralPalette): string {
   const depth = n.level || 3;
@@ -242,9 +242,9 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
       }
     };
 
-    const emit = (x: number, y: number, now: number) => {
+    const emit = (x: number, y: number, now: number, toNodes: boolean) => {
       refreshGraph();
-      const wv: Wave = { seen: new Set(), touched: new Set(), seenDots: new Set() };
+      const wv: Wave = { seen: new Set(), touched: new Set(), seenDots: new Set(), toNodes };
       const cands: { i: number; d: number }[] = [];
       forEachVisibleDot((i, dx, dy) => cands.push({ i, d: Math.hypot(dx - x, dy - y) }));
       cands.sort((p, q) => p.d - q.d);
@@ -255,7 +255,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
     };
     emitRef.current = (x, y) => {
       const now = performance.now();
-      emit(x, y, now);
+      emit(x, y, now, true);
       nextAuto = now + nextAutoDelay();
     };
 
@@ -274,7 +274,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
       const t = nowMs / 1000;
       refreshGraph();
       if (!reduceMotion && nowMs >= nextAuto) {
-        emit(Math.random() * w, Math.random() * h, nowMs);
+        emit(Math.random() * w, Math.random() * h, nowMs, false);
         nextAuto = nowMs + nextAutoDelay();
       }
 
@@ -303,7 +303,7 @@ export const NeuralSignalLayer = forwardRef<SignalLayerHandle, NeuralSignalLayer
           }
         }
         // 켜진 점이 노드 박스에 닿으면 그 노드로 전파
-        snodes.forEach((n) => {
+        if (a.w.toNodes) snodes.forEach((n) => {
           if (a.w.touched.has(n.id)) return;
           const dist = Math.hypot(Math.max(Math.abs(n.x - dx) - n.hw, 0), Math.max(Math.abs(n.y - dy) - n.hh, 0));
           if (dist > NODE_TOUCH * tr.k) return;
