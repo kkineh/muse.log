@@ -25,8 +25,8 @@ interface NeuralSignalLayerProps {
 
 const SPEED = 125; // 점 사이 전파 속도 (월드 px/s, 줌에 비례해 화면 속도가 바뀜)
 const SEED_R = 60; // 클릭 지점에서 처음 켜지는 점의 반경 (월드 px)
-const DOT_DECAY = 0.65; // 점을 한 칸 건널 때마다 줄어드는 세기
-const MIN_POWER = 0.3; // 이보다 약해지면 전파가 멈춤
+const DOT_DECAY = 0.77; // 점을 한 칸 건널 때마다 줄어드는 세기
+const MIN_POWER = 0.28; // 이보다 약해지면 전파가 멈춤
 const NODE_TOUCH = 16; // 켜진 점이 노드 박스에 이만큼 가까우면 노드로 전파 (월드 px)
 const DOT_HOP = 1.2; // 점 → 노드 이동 시간 (s)
 const EDGE_HOP = 1.7; // 노드 → 노드 이동 시간 (s)
