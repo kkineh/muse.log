@@ -50,8 +50,8 @@ const DOT_HOP = 0.7;
 const EDGE_HOP = 1.0;
 const NODE_HOPS = 2;
 const DECAY = 0.9;
-const AUTO_MIN_MS = 2000;
-const AUTO_MAX_MS = 4000;
+const AUTO_MIN_MS = 4000;
+const AUTO_MAX_MS = 7000;
 const nextAutoDelay = () => AUTO_MIN_MS + Math.random() * (AUTO_MAX_MS - AUTO_MIN_MS);
 
 interface FNode {
