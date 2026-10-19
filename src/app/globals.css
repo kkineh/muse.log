@@ -975,7 +975,7 @@
 
   .neural-center-card {
     position: relative;
-    background: var(--neural-card);
+    background: var(--neural-bg);
     backdrop-filter: blur(12px);
     border: 1px solid var(--neural-line);
     border-radius: 16px;

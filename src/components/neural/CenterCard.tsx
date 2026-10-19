@@ -6,14 +6,8 @@ import Link from 'next/link';
 import { CiLinkedin } from 'react-icons/ci';
 import { GITHUB_URL, LINKEDIN_URL, MAIL_URL } from '@/lib/social-links';
 import { ChatBubble } from './ChatBubble';
-import type { ChatResponse } from '@/types/database';
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  relatedSlugs?: string[];
-  isNew?: boolean;
-}
+import { MuseLogo } from './MuseLogo';
+import { useChat } from '@/hooks/useChat';
 
 interface CenterCardProps {
   onSlugClick: (slug: string) => void;
@@ -24,9 +18,8 @@ interface CenterCardProps {
 }
 
 export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onCollapse, onExpand }: CenterCardProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, isProcessing, send } = useChat({ onSources: onHighlightPosts });
   const [inputValue, setInputValue] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,60 +32,22 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
     e.preventDefault();
     if (!inputValue.trim() || isProcessing) return;
 
-    const userMessage: Message = {
-      role: 'user',
-      content: inputValue.trim(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    const text = inputValue;
     setInputValue('');
-    setIsProcessing(true);
+    if (isCollapsed) {
+      onExpand();
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    void send(text);
+  };
 
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      const data: ChatResponse = await response.json();
-
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.answer,
-        relatedSlugs: data.sources.map((s) => s.slug),
-        isNew: true,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      // Highlight related posts in the network
-      if (data.sources.length > 0) {
-        onHighlightPosts(data.sources.map((s) => s.slug));
-      }
-    } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessage: Message = {
-        role: 'assistant',
-        content:
-          '죄송합니다. 응답을 생성하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
-        isNew: true,
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsProcessing(false);
+  // 접힌 상태에서 input 클릭 시 펼치기
+  const handleInputFocus = () => {
+    if (isCollapsed) {
+      onExpand();
     }
   };
 
-  // 모바일 키보드가 올라오면 보이는 영역(visualViewport)에 채팅창을 맞춤
   useEffect(() => {
     const vv = window.visualViewport;
     if (isCollapsed || !vv) return;
@@ -112,18 +67,11 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
     };
   }, [isCollapsed]);
 
-  // 접힌 상태에서 input 클릭 시 펼치기
-  const handleInputFocus = () => {
-    if (isCollapsed) {
-      onExpand();
-    }
-  };
-
   return (
     <>
     {!isCollapsed && (
       <div
-        className="fixed inset-0 z-40"
+        className="fixed inset-0 z-40 max-md:touch-none max-md:bg-[var(--neural-bg)]"
         onClick={onCollapse}
       />
     )}
@@ -131,7 +79,7 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
       className={`fixed z-50 md:transition-all md:duration-500 md:ease-in-out ${
         isCollapsed
           ? 'bottom-3 md:bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] md:w-[600px]'
-          : 'top-[var(--vv-top,0px)] left-0 w-full md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[60%]'
+          : 'top-[var(--vv-top,0px)] left-0 w-full h-[var(--vv-h,100dvh)] md:h-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[60%]'
       }`}
       style={{
         fontFamily: 'var(--font-inter), sans-serif',
@@ -139,38 +87,25 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
     >
       {/* Card content */}
       <div className={`relative flex flex-col neural-center-card max-md:transition-none! ${
-        isCollapsed ? 'h-[80px] neural-card-collapsed' : 'h-[var(--vv-h,100dvh)] max-md:rounded-none! max-md:border-0! md:h-[min(640px,calc(100dvh-4rem))]'
+        isCollapsed ? 'h-[80px] neural-card-collapsed' : 'max-md:h-full max-md:rounded-none! max-md:border-0! md:h-[min(640px,calc(100dvh-4rem))]'
       }`}>
           {/* Collapse/Expand button - only show when expanded */}
           {!isCollapsed && (
             <button
               onClick={onCollapse}
-              className="absolute top-4 right-4 z-20 p-2 rounded-lg hover:bg-[rgb(255_255_255/0.1)] transition-colors"
+              className="absolute top-[19px] right-3.5 md:top-4 md:right-4 z-20 p-1.5 md:p-2 rounded-lg hover:bg-[rgb(255_255_255/0.1)] transition-colors"
               aria-label="Minimize chat"
             >
-              <Minimize2 size={20} style={{ color: 'var(--neural-text-primary)' }} />
+              <Minimize2 size={20} className="max-md:size-4" style={{ color: 'var(--neural-text-primary)' }} />
             </button>
           )}
 
         {/* Header - hide when collapsed */}
         {!isCollapsed && (
-          <div className="p-5 pb-4 md:p-8 md:pb-4">
-            <h1
-              className="text-3xl mb-2"
-              style={{
-                fontFamily: 'var(--font-fira-code), monospace',
-                color: 'var(--neural-text-primary)',
-                fontWeight: 600,
-              }}
-            >
-              <span style={{ display: 'inline-block', transform: 'scaleX(1.38)', margin: '0px 0.14em 0 0' }}>m</span>
-              use
-              <span style={{ margin: '0px -0.2em 0 -0.1em' }}>.</span>
-              <span style={{ marginRight: '-0.04em' }}>l</span>
-              og
-            </h1>
+          <div className="p-5 pb-2 md:p-8 md:pb-4">
+            <MuseLogo className="max-md:text-[20px]! md:text-3xl mb-0 md:mb-2" />
             <p
-              className="text-sm mb-4"
+              className="text-sm mb-4 max-md:hidden"
               style={{
                 color: 'var(--neural-text-muted)',
               }}
@@ -179,7 +114,7 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
             </p>
 
             {/* Links */}
-            <div className="flex flex-wrap items-center gap-5">
+            <div className="flex flex-wrap items-center gap-5 max-md:hidden">
               <Link
                 href="/about"
                 aria-label="About"
@@ -227,7 +162,7 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
         {/* Chat History - hide when collapsed */}
         <div
           ref={scrollRef}
-          className={`flex-1 px-5 md:px-8 overflow-y-auto ${isCollapsed ? 'hidden' : ''}`}
+          className={`flex-1 px-5 md:px-8 overflow-y-auto overscroll-contain ${isCollapsed ? 'hidden' : ''}`}
           style={{
             scrollbarWidth: 'thin',
             scrollbarColor: 'var(--neural-border-glow) transparent',
@@ -285,10 +220,9 @@ export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onColla
               onFocus={handleInputFocus}
               placeholder="무엇이든 물어보세요..."
               disabled={isProcessing}
-              className="w-full px-4 py-3 pr-12 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[var(--neural-line)] focus:outline-none transition-colors"
+              className="w-full px-4 py-2 md:py-3 pr-12 rounded-lg text-base md:text-[14px] bg-[rgba(255,255,255,0.05)] border border-[var(--neural-line)] focus:outline-none transition-colors"
               style={{
                 color: 'var(--neural-text-primary)',
-                fontSize: '14px',
               }}
             />
             <button
