@@ -17,7 +17,7 @@ export default function AdminToolbar({ slug }: AdminToolbarProps) {
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="fixed right-8 top-[88px] z-20 flex flex-col gap-1"
+      className="fixed right-4 top-14 md:right-8 md:top-[88px] z-20 flex flex-col gap-1"
     >
       <Link href="/admin" aria-label="관리자" title="관리자" className={linkClass}>
         <Settings size={20} />

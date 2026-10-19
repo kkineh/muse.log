@@ -210,7 +210,7 @@ export default function PostDetailView({
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="absolute inset-0 overflow-y-auto pt-32"
+        className="absolute inset-0 overflow-y-auto pt-20 md:pt-32"
         style={{
           scrollbarWidth: 'thin',
           scrollbarColor: 'var(--neural-border-glow) transparent',
