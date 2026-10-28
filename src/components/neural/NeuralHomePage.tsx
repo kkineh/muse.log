@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaCircleUser, FaGithub, FaLinkedin } from 'react-icons/fa6';
 import { MdEmail } from 'react-icons/md';
+import { Settings } from 'lucide-react';
 import Link from 'next/link';
 import { GITHUB_URL, LINKEDIN_URL, MAIL_URL } from '@/lib/social-links';
 import { NeuralNetwork } from './NeuralNetwork';
@@ -17,6 +18,7 @@ const SOCIAL_LINKS = [
   { label: 'GitHub', href: GITHUB_URL, Icon: FaGithub, external: true },
   { label: 'LinkedIn', href: LINKEDIN_URL, Icon: FaLinkedin, external: true },
   { label: 'Email', href: MAIL_URL, Icon: MdEmail, external: false },
+  { label: 'Admin', href: '/admin', Icon: Settings, external: false },
 ];
 
 const ICON_LINK_CLASS =

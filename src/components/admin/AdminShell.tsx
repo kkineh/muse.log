@@ -15,7 +15,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import LogoutButton from './LogoutButton';
-import { MuseLogo } from '@/components/neural/MuseLogo';
 import './admin-theme.css';
 
 type Item = { name: string; href: string; icon: LucideIcon };
@@ -51,12 +50,15 @@ const useActive = () => {
 
 function Brand() {
   return (
-    <Link href="/admin" className="flex items-center gap-2.5">
+    <Link
+      href="/admin"
+      className="flex items-center gap-2.5 font-semibold tracking-tight"
+      style={{ color: 'var(--text-primary)' }}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/icon.svg" alt="" width={28} height={28} className="rounded-md" />
-      <MuseLogo as="span" className="text-lg" />
-      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-        admin
+      <img src="/logo-dark.svg" alt="muse.log" width={32} height={32} className="rounded-md" />
+      <span>
+        muse.log <span style={{ color: 'var(--text-muted)' }}>admin</span>
       </span>
     </Link>
   );
