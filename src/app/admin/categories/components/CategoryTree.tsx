@@ -171,35 +171,30 @@ export default function CategoryTree({
         items={flatNodes.map((n) => n.id)}
         strategy={verticalListSortingStrategy}
       >
-        {flatNodes.map((node) => (
-          <CategoryNode
-            key={node.id}
-            node={node}
-            collapsed={collapsedIds.has(node.id)}
-            onToggle={toggleCollapse}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onAddChild={onAddChild}
-            onInlineRename={onInlineRename}
-            isOver={overId === node.id}
-          />
-        ))}
+        <div className="adm-panel">
+          {flatNodes.map((node) => (
+            <CategoryNode
+              key={node.id}
+              node={node}
+              collapsed={collapsedIds.has(node.id)}
+              onToggle={toggleCollapse}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onAddChild={onAddChild}
+              onInlineRename={onInlineRename}
+              isOver={overId === node.id}
+            />
+          ))}
+        </div>
       </SortableContext>
 
       <DragOverlay>
         {activeNode && (
-          <div
-            className="card p-3 flex items-center gap-3"
-            style={{
-              borderColor: 'var(--color-primary)',
-              boxShadow: 'var(--shadow-lg)',
-              opacity: 0.9,
-            }}
-          >
-            <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <div className="adm-panel flex items-center gap-3 px-4 py-3 opacity-90">
+            <span className="font-semibold text-[var(--t-text)]">
               {activeNode.category.name}
             </span>
-            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            <span className="text-sm text-[var(--t-muted)]">
               /{activeNode.category.slug}
             </span>
           </div>

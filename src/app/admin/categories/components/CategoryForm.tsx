@@ -73,34 +73,18 @@ export default function CategoryForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label
-          className="block text-sm font-medium mb-2"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Name *
-        </label>
+      <div className="adm-field">
+        <label>Name *</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          className="w-full px-4 py-3 rounded-lg border"
-          style={{
-            background: 'var(--bg-primary)',
-            borderColor: 'var(--border-color)',
-            color: 'var(--text-primary)',
-          }}
+          className="adm-input"
         />
       </div>
-
-      <div>
-        <label
-          className="block text-sm font-medium mb-2"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Slug *
-        </label>
+      <div className="adm-field">
+        <label>Slug *</label>
         <input
           type="text"
           value={slug}
@@ -109,31 +93,15 @@ export default function CategoryForm({
             setSlugManuallyEdited(true);
           }}
           required
-          className="w-full px-4 py-3 rounded-lg border"
-          style={{
-            background: 'var(--bg-primary)',
-            borderColor: 'var(--border-color)',
-            color: 'var(--text-primary)',
-          }}
+          className="adm-input"
         />
       </div>
-
-      <div>
-        <label
-          className="block text-sm font-medium mb-2"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Parent
-        </label>
+      <div className="adm-field">
+        <label>Parent</label>
         <select
           value={parentId}
           onChange={(e) => setParentId(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg border"
-          style={{
-            background: 'var(--bg-primary)',
-            borderColor: 'var(--border-color)',
-            color: 'var(--text-primary)',
-          }}
+          className="adm-input"
         >
           <option value="">None (Top Level)</option>
           {availableParents.map((cat) => (
@@ -142,48 +110,23 @@ export default function CategoryForm({
             </option>
           ))}
         </select>
-        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-          Level: {computeLevel(parentId || null)}
-        </p>
+        <p className="adm-hint">Level: {computeLevel(parentId || null)}</p>
       </div>
-
-      <div>
-        <label
-          className="block text-sm font-medium mb-2"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Description
-        </label>
+      <div className="adm-field">
+        <label>Description</label>
         <input
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg border"
-          style={{
-            background: 'var(--bg-primary)',
-            borderColor: 'var(--border-color)',
-            color: 'var(--text-primary)',
-          }}
+          className="adm-input"
         />
       </div>
 
       <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          className="px-6 py-3 rounded-lg font-medium transition-all"
-          style={{ background: 'var(--color-primary)', color: 'white' }}
-        >
+        <button type="submit" className="adm-btn adm-btn-primary">
           {submitLabel}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-6 py-3 rounded-lg font-medium transition-all"
-          style={{
-            border: '1px solid var(--border-color)',
-            color: 'var(--text-secondary)',
-          }}
-        >
+        <button type="button" onClick={onCancel} className="adm-btn">
           Cancel
         </button>
       </div>

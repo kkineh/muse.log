@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Plus } from 'lucide-react';
 import type { Category, CategoryWithChildren } from '@/types/database';
 import CategoryTree from './components/CategoryTree';
 import CategoryFormDialog from './components/CategoryFormDialog';
@@ -158,38 +159,20 @@ export default function CategoriesPage() {
   );
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1
-          className="text-3xl font-bold"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          Categories
-        </h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="adm-h1">Categories</h1>
 
         <button
           onClick={handleNewCategory}
-          className="px-6 py-3 rounded-lg font-medium transition-all"
-          style={{
-            background: 'var(--color-primary)',
-            color: 'white',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--color-primary-light)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'var(--color-primary)';
-          }}
+          className="adm-btn adm-btn-primary"
         >
-          + New Category
+          <Plus size={15} /> New Category
         </button>
       </div>
 
       {categories.length === 0 ? (
-        <div
-          className="card p-12 text-center"
-          style={{ color: 'var(--text-secondary)' }}
-        >
+        <div className="adm-panel p-12 text-center text-[var(--t-text2)]">
           <p>No categories yet.</p>
         </div>
       ) : (

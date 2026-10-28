@@ -1,0 +1,142 @@
+/* Admin design directions. Shared Soft palette; .adm-root picks the layout language. */
+
+.adm-root {
+  --t-bg: #0e0f13; --t-surface: #16181d; --t-sunken: #1d1f26;
+  --t-border: transparent; --t-border-soft: #20232a;
+  --t-text: #eceef3; --t-text2: #a3a9b8; --t-muted: #737a8a;
+  --t-accent: #818cf8; --t-on-accent: #0e0f13;
+  --t-radius: 16px;
+  --t-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  --bg-primary: var(--t-bg);
+  --bg-secondary: var(--t-surface);
+  --bg-tertiary: var(--t-sunken);
+  --border-color: var(--t-border);
+  --border-color-light: var(--t-border-soft);
+  --text-primary: var(--t-text);
+  --text-secondary: var(--t-text2);
+  --text-muted: var(--t-muted);
+  --color-primary: var(--t-accent);
+  --shadow-sm: var(--t-shadow);
+  --shadow-md: var(--t-shadow);
+  background: var(--t-bg);
+  color: var(--t-text);
+}
+
+/* legacy .card (charts, other pages) follows the direction */
+.adm-root .card,
+.adm-root .card:hover {
+  border-radius: var(--t-radius);
+  border-color: var(--t-border);
+  box-shadow: var(--t-shadow);
+}
+
+/* ---------- primitives ---------- */
+.adm-h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; color: var(--t-text); }
+.adm-sub { color: var(--t-muted); font-size: 0.85rem; }
+.adm-label { font-size: 0.75rem; color: var(--t-muted); font-weight: 500; }
+.adm-panel {
+  background: var(--t-surface);
+  border-radius: var(--t-radius);
+  box-shadow: var(--t-shadow);
+  overflow: hidden;
+}
+.adm-aside {
+  background: var(--t-surface);
+  border-right: 1px solid var(--t-border-soft);
+}
+
+.adm-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  height: 2.3rem; padding: 0 1rem;
+  font-size: 0.85rem; font-weight: 500; text-decoration: none;
+  color: var(--t-text); background: var(--t-surface);
+  border: 0; border-radius: calc(var(--t-radius) - 4px);
+  box-shadow: var(--t-shadow);
+  transition: background 0.15s, filter 0.15s;
+  cursor: pointer;
+}
+.adm-btn:hover { background: var(--t-sunken); }
+.adm-btn-primary { color: var(--t-on-accent); background: var(--t-accent); }
+.adm-btn-primary:hover { background: var(--t-accent); filter: brightness(1.1); }
+.adm-icon-btn {
+  display: inline-grid; place-items: center; width: 2rem; height: 2rem;
+  color: var(--t-muted); background: transparent; border: 0;
+  border-radius: 10px; cursor: pointer; text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.adm-icon-btn:hover { background: var(--t-sunken); color: var(--t-text); }
+.adm-icon-btn.danger:hover { color: #f87171; background: color-mix(in srgb, #f87171 14%, transparent); }
+
+.adm-badge { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 500; color: var(--t-text2); }
+.adm-badge::before { content: ''; width: 0.4rem; height: 0.4rem; border-radius: 9999px; background: var(--dot); }
+.adm-badge.ok { --dot: #34d399; }
+.adm-badge.draft { --dot: #fbbf24; }
+
+/* dashboard grid */
+.adm-dash { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1.5rem; }
+.adm-dash > * { grid-column: span 12; min-width: 0; }
+@media (min-width: 1024px) {
+  .adm-dash > .d-half { grid-column: span 6; }
+}
+
+/* stats */
+.adm-stats { display: grid; grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 768px) { .adm-stats { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1280px) { .adm-stats { grid-template-columns: repeat(6, 1fr); } }
+.adm-stat-value { margin-top: 0.3rem; font-weight: 600; letter-spacing: -0.02em; color: var(--t-text); font-variant-numeric: tabular-nums; }
+
+/* posts */
+.adm-row {
+  display: grid; align-items: center; gap: 0.5rem 1rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'title act';
+}
+.c-title { grid-area: title; min-width: 0; }
+.c-act { grid-area: act; display: flex; justify-content: flex-end; }
+.c-cat, .c-date, .c-status { display: none; }
+.c-cat, .c-date { font-size: 0.85rem; color: var(--t-text2); }
+.c-cat { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 900px) {
+  .adm-row {
+    grid-template-columns: minmax(0, 1fr) 11rem 5.5rem 6.5rem 4.5rem;
+    grid-template-areas: 'title cat date status act';
+  }
+  .c-cat, .c-date, .c-status { display: block; grid-area: auto; }
+  .c-cat { grid-area: cat; } .c-date { grid-area: date; } .c-status { grid-area: status; }
+}
+
+/* ---------- panel layout ---------- */
+.adm-stats {
+  gap: 1px; background: var(--t-border-soft); border-radius: var(--t-radius);
+  box-shadow: var(--t-shadow); overflow: hidden;
+}
+.adm-stat { background: var(--t-surface); padding: 1rem 1.1rem; }
+.adm-stat-value { font-size: 1.6rem; }
+.adm-row { padding: 1rem 1.2rem; border-top: 1px solid var(--t-border-soft); }
+.adm-row:first-child { border-top: 0; }
+.adm-row:hover:not(.adm-row-head) { background: var(--t-sunken); }
+.adm-row-head { padding-top: 0.6rem; padding-bottom: 0.6rem; }
+
+/* ---------- forms & tables ---------- */
+.adm-input {
+  width: 100%; height: 2.3rem; padding: 0 0.8rem;
+  font-size: 0.875rem; color: var(--t-text);
+  background: var(--t-sunken); border: 1px solid transparent;
+  border-radius: calc(var(--t-radius) - 6px); outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+textarea.adm-input { height: auto; padding: 0.6rem 0.8rem; }
+.adm-input:focus { border-color: var(--t-accent); }
+.adm-input::placeholder { color: var(--t-muted); }
+.adm-field > label { display: block; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 500; color: var(--t-text2); }
+.adm-hint { margin-top: 0.3rem; font-size: 0.75rem; color: var(--t-muted); }
+.adm-section { padding: 1.25rem 1.4rem; }
+.adm-section-title { margin-bottom: 1rem; font-size: 0.95rem; font-weight: 600; color: var(--t-text); }
+.adm-table { width: 100%; border-collapse: collapse; }
+.adm-table th { padding: 0.6rem 1.2rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: var(--t-muted); }
+.adm-table td { padding: 0.9rem 1.2rem; font-size: 0.875rem; color: var(--t-text2); border-top: 1px solid var(--t-border-soft); }
+.adm-table tbody tr:hover { background: var(--t-sunken); }
+.adm-table .right { text-align: right; }
+.adm-btn-danger { color: #f87171; }
+.adm-btn-danger:hover { background: color-mix(in srgb, #f87171 14%, var(--t-surface)); }

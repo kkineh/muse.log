@@ -50,36 +50,10 @@ export default function CategoryFormDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 50,
-          }}
-        />
-        <Dialog.Content
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '90vw',
-            maxWidth: '500px',
-            maxHeight: '85vh',
-            overflowY: 'auto',
-            padding: '1.5rem',
-            borderRadius: '12px',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--shadow-lg)',
-            zIndex: 51,
-          }}
-        >
-          <Dialog.Title
-            className="text-xl font-semibold mb-4"
-            style={{ color: 'var(--text-primary)' }}
-          >
+        <div className="adm-root !bg-transparent">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[51] w-[90vw] max-w-[500px] -translate-x-1/2 -translate-y-1/2 max-h-[85vh] overflow-y-auto rounded-[var(--t-radius)] bg-[var(--t-surface)] p-6 text-[var(--t-text)] shadow-[var(--t-shadow)]">
+          <Dialog.Title className="adm-section-title text-lg">
             {isEdit ? 'Edit Category' : 'New Category'}
           </Dialog.Title>
 
@@ -94,6 +68,7 @@ export default function CategoryFormDialog({
             submitLabel={isEdit ? 'Save' : 'Create'}
           />
         </Dialog.Content>
+        </div>
       </Dialog.Portal>
     </Dialog.Root>
   );

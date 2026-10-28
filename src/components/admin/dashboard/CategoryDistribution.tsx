@@ -10,7 +10,7 @@ import {
   Cell,
 } from 'recharts';
 
-const COLORS = ['#0c8bc9', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#f97316'];
+const COLORS = ['#818cf8', '#a78bfa', '#38bdf8', '#34d399', '#fbbf24', '#f472b6'];
 
 interface Props {
   data: { name: string; count: number }[];
@@ -19,11 +19,9 @@ interface Props {
 export default function CategoryDistribution({ data }: Props) {
   if (data.length === 0) {
     return (
-      <div className="card p-6">
-        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-          Posts by Category
-        </h3>
-        <div className="flex items-center justify-center h-[200px]" style={{ color: 'var(--text-secondary)' }}>
+      <div className="adm-panel adm-section">
+        <h3 className="adm-section-title">Posts by Category</h3>
+        <div className="adm-sub flex items-center justify-center h-[200px]">
           No categories yet
         </div>
       </div>
@@ -31,10 +29,8 @@ export default function CategoryDistribution({ data }: Props) {
   }
 
   return (
-    <div className="card p-6">
-      <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-        Posts by Category
-      </h3>
+    <div className="adm-panel adm-section">
+      <h3 className="adm-section-title">Posts by Category</h3>
       <ResponsiveContainer width="100%" height={data.length * 40 + 20}>
         <BarChart data={data} layout="vertical" margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>
           <XAxis type="number" allowDecimals={false} hide />
@@ -42,17 +38,20 @@ export default function CategoryDistribution({ data }: Props) {
             type="category"
             dataKey="name"
             width={100}
-            tick={{ fill: 'var(--text-secondary)', fontSize: 13 }}
+            tick={{ fill: 'var(--t-muted)', fontSize: 13 }}
             tickLine={false}
             axisLine={false}
           />
           <Tooltip
+            cursor={{ fill: 'var(--t-sunken)' }}
             contentStyle={{
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              color: 'var(--text-primary)',
+              background: 'var(--t-surface)',
+              border: 'none',
+              borderRadius: 'calc(var(--t-radius) - 6px)',
+              boxShadow: 'var(--t-shadow)',
+              color: 'var(--t-text)',
             }}
+            itemStyle={{ color: 'var(--t-text2)' }}
           />
           <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
             {data.map((_, index) => (

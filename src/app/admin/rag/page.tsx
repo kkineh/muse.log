@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { RefreshCw } from 'lucide-react';
+
+const RANGE_CLASS = 'w-full accent-[var(--t-accent)]';
 
 export default function RAGSettingsPage() {
   const [matchThreshold, setMatchThreshold] = useState(0.7);
@@ -36,170 +39,100 @@ export default function RAGSettingsPage() {
   };
 
   return (
-    <div>
-      <h1
-        className="text-3xl font-bold mb-8"
-        style={{ color: 'var(--text-primary)' }}
-      >
-        RAG Settings
-      </h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="adm-h1">RAG Settings</h1>
+      </div>
 
-      <div className="card p-6 space-y-6">
-        <div>
-          <h2
-            className="text-xl font-semibold mb-4"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            Search Parameters
-          </h2>
+      <div className="adm-panel adm-section">
+        <h2 className="adm-section-title">Search Parameters</h2>
 
-          <div className="space-y-4">
-            <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Match Threshold: {matchThreshold.toFixed(2)}
-              </label>
-              <input
-                type="range"
-                min="0.5"
-                max="0.9"
-                step="0.05"
-                value={matchThreshold}
-                onChange={(e) => setMatchThreshold(parseFloat(e.target.value))}
-                className="w-full"
-              />
-              <p
-                className="text-xs mt-1"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                Higher values return more relevant results
-              </p>
-            </div>
+        <div className="space-y-5">
+          <div className="adm-field">
+            <label>Match Threshold: {matchThreshold.toFixed(2)}</label>
+            <input
+              type="range"
+              min="0.5"
+              max="0.9"
+              step="0.05"
+              value={matchThreshold}
+              onChange={(e) => setMatchThreshold(parseFloat(e.target.value))}
+              className={RANGE_CLASS}
+            />
+            <p className="adm-hint">Higher values return more relevant results</p>
+          </div>
 
-            <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Number of Results: {matchCount}
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="5"
-                step="1"
-                value={matchCount}
-                onChange={(e) => setMatchCount(parseInt(e.target.value))}
-                className="w-full"
-              />
-              <p
-                className="text-xs mt-1"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                Number of posts to use as context
-              </p>
-            </div>
+          <div className="adm-field">
+            <label>Number of Results: {matchCount}</label>
+            <input
+              type="range"
+              min="1"
+              max="5"
+              step="1"
+              value={matchCount}
+              onChange={(e) => setMatchCount(parseInt(e.target.value))}
+              className={RANGE_CLASS}
+            />
+            <p className="adm-hint">Number of posts to use as context</p>
+          </div>
 
-            <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Max Response Tokens: {maxTokens}
-              </label>
-              <input
-                type="range"
-                min="100"
-                max="500"
-                step="50"
-                value={maxTokens}
-                onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                className="w-full"
-              />
-              <p
-                className="text-xs mt-1"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                Maximum length of chatbot responses
-              </p>
-            </div>
+          <div className="adm-field">
+            <label>Max Response Tokens: {maxTokens}</label>
+            <input
+              type="range"
+              min="100"
+              max="500"
+              step="50"
+              value={maxTokens}
+              onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+              className={RANGE_CLASS}
+            />
+            <p className="adm-hint">Maximum length of chatbot responses</p>
           </div>
         </div>
+      </div>
 
-        <div className="border-t pt-6" style={{ borderColor: 'var(--border-color)' }}>
-          <h2
-            className="text-xl font-semibold mb-4"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            Embeddings Management
-          </h2>
+      <div className="adm-panel adm-section">
+        <h2 className="adm-section-title">Embeddings Management</h2>
 
-          <p
-            className="text-sm mb-4"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            Embeddings are automatically generated when you create or update a
-            published post. You can manually regenerate all embeddings if
-            needed.
-          </p>
+        <p className="mb-4 text-sm" style={{ color: 'var(--t-text2)' }}>
+          Embeddings are automatically generated when you create or update a
+          published post. You can manually regenerate all embeddings if needed.
+        </p>
 
-          <button
-            onClick={handleRegenerateAll}
-            disabled={regenerating}
-            className="px-6 py-3 rounded-lg font-medium transition-all"
-            style={{
-              background: regenerating
-                ? 'var(--bg-tertiary)'
-                : 'var(--color-primary)',
-              color: 'white',
-              opacity: regenerating ? 0.6 : 1,
-              cursor: regenerating ? 'not-allowed' : 'pointer',
-            }}
-            onMouseEnter={(e) => {
-              if (!regenerating) {
-                e.currentTarget.style.background = 'var(--color-primary-light)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!regenerating) {
-                e.currentTarget.style.background = 'var(--color-primary)';
-              }
-            }}
-          >
-            {regenerating ? 'Regenerating...' : '🔄 Regenerate All Embeddings'}
-          </button>
-        </div>
+        <button
+          onClick={handleRegenerateAll}
+          disabled={regenerating}
+          className="adm-btn adm-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <RefreshCw size={15} className={regenerating ? 'animate-spin' : ''} />
+          {regenerating ? 'Regenerating...' : 'Regenerate All Embeddings'}
+        </button>
+      </div>
+
+      <div className="adm-panel adm-section">
+        <h2 className="adm-section-title">Model Information</h2>
 
         <div
-          className="border-t pt-6"
-          style={{ borderColor: 'var(--border-color)' }}
+          className="space-y-2 text-sm"
+          style={{ color: 'var(--t-text2)' }}
         >
-          <h2
-            className="text-xl font-semibold mb-4"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            Model Information
-          </h2>
-
-          <div
-            className="space-y-2 text-sm"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <p>
-              <strong>Embedding Model:</strong> text-embedding-3-small
-            </p>
-            <p>
-              <strong>Chat Model:</strong> gpt-4o-mini
-            </p>
-            <p>
-              <strong>Cost per embedding:</strong> ~$0.00004 per post
-            </p>
-            <p>
-              <strong>Cost per chat:</strong> ~$0.0007 per conversation
-            </p>
-          </div>
+          <p>
+            <strong style={{ color: 'var(--t-text)' }}>Embedding Model:</strong>{' '}
+            text-embedding-3-small
+          </p>
+          <p>
+            <strong style={{ color: 'var(--t-text)' }}>Chat Model:</strong>{' '}
+            gpt-4o-mini
+          </p>
+          <p>
+            <strong style={{ color: 'var(--t-text)' }}>Cost per embedding:</strong>{' '}
+            ~$0.00004 per post
+          </p>
+          <p>
+            <strong style={{ color: 'var(--t-text)' }}>Cost per chat:</strong>{' '}
+            ~$0.0007 per conversation
+          </p>
         </div>
       </div>
     </div>

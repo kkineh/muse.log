@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { Save, X } from 'lucide-react';
 import type { Category, PostWithCategoryAndTags } from '@/types/database';
 import TagSelector from '@/components/admin/TagSelector';
 import dynamic from 'next/dynamic';
@@ -66,230 +67,138 @@ export function EditPostForm({ post, categories }: EditPostFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Title */}
-      <div>
-        <label
-          className="block text-sm font-medium mb-2"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Title *
-        </label>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-          className="w-full px-4 py-3 rounded-lg border outline-none transition-all"
-          style={{
-            background: 'var(--bg-primary)',
-            borderColor: 'var(--border-color)',
-            color: 'var(--text-primary)',
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = 'var(--color-primary)';
-            e.target.style.boxShadow = 'var(--shadow-md)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'var(--border-color)';
-            e.target.style.boxShadow = 'none';
-          }}
-        />
+      <div className="adm-panel adm-section space-y-4">
+        {/* Title */}
+        <div className="adm-field">
+          <label>Title *</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            className="adm-input"
+          />
+        </div>
+
+        {/* Slug (Read-only) */}
+        <div className="adm-field">
+          <label>Slug (Cannot be changed)</label>
+          <input
+            type="text"
+            value={slug}
+            disabled
+            className="adm-input cursor-not-allowed opacity-60"
+          />
+          <p className="adm-hint">
+            Slug cannot be modified after creation to preserve URL integrity.
+          </p>
+        </div>
+
+        {/* Category */}
+        <div className="adm-field">
+          <label>Category</label>
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="adm-input"
+          >
+            <option value="">Uncategorized</option>
+            {categories
+              .filter((cat) => cat.level === 1)
+              .map((level1) => {
+                const children = categories.filter(
+                  (cat) => cat.parent_id === level1.id
+                );
+                const grandchildren = categories.filter((cat) =>
+                  children.some((c) => c.id === cat.parent_id)
+                );
+                return (
+                  <optgroup key={level1.id} label={level1.name}>
+                    <option value={level1.id}>{level1.name}</option>
+                    {children.map((level2) => (
+                      <>
+                        <option key={level2.id} value={level2.id}>
+                          {'\u2003'}{level2.name}
+                        </option>
+                        {grandchildren
+                          .filter((cat) => cat.parent_id === level2.id)
+                          .map((level3) => (
+                            <option key={level3.id} value={level3.id}>
+                              {'\u2003\u2003'}{level3.name}
+                            </option>
+                          ))}
+                      </>
+                    ))}
+                  </optgroup>
+                );
+              })}
+          </select>
+        </div>
+
+        {/* Tags */}
+        <TagSelector selectedTagIds={tagIds} onChange={setTagIds} />
+
+        {/* Excerpt */}
+        <div className="adm-field">
+          <label>Excerpt</label>
+          <textarea
+            value={excerpt}
+            onChange={(e) => setExcerpt(e.target.value)}
+            rows={3}
+            className="adm-input"
+          />
+        </div>
       </div>
 
-      {/* Slug (Read-only) */}
-      <div>
-        <label
-          className="block text-sm font-medium mb-2"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Slug (Cannot be changed)
-        </label>
-        <input
-          type="text"
-          value={slug}
-          disabled
-          className="w-full px-4 py-3 rounded-lg border outline-none cursor-not-allowed opacity-60"
-          style={{
-            background: 'var(--bg-tertiary)',
-            borderColor: 'var(--border-color)',
-            color: 'var(--text-secondary)',
-          }}
-        />
-        <p
-          className="text-xs mt-1"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Slug cannot be modified after creation to preserve URL integrity.
-        </p>
-      </div>
-
-      {/* Category */}
-      <div>
-        <label
-          className="block text-sm font-medium mb-2"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Category
-        </label>
-        <select
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg border outline-none transition-all"
-          style={{
-            background: 'var(--bg-primary)',
-            borderColor: 'var(--border-color)',
-            color: 'var(--text-primary)',
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = 'var(--color-primary)';
-            e.target.style.boxShadow = 'var(--shadow-md)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'var(--border-color)';
-            e.target.style.boxShadow = 'none';
-          }}
-        >
-          <option value="">Uncategorized</option>
-          {categories
-            .filter((cat) => cat.level === 1)
-            .map((level1) => {
-              const children = categories.filter(
-                (cat) => cat.parent_id === level1.id
-              );
-              const grandchildren = categories.filter((cat) =>
-                children.some((c) => c.id === cat.parent_id)
-              );
-              return (
-                <optgroup key={level1.id} label={level1.name}>
-                  <option value={level1.id}>{level1.name}</option>
-                  {children.map((level2) => (
-                    <>
-                      <option key={level2.id} value={level2.id}>
-                        {'\u2003'}{level2.name}
-                      </option>
-                      {grandchildren
-                        .filter((cat) => cat.parent_id === level2.id)
-                        .map((level3) => (
-                          <option key={level3.id} value={level3.id}>
-                            {'\u2003\u2003'}{level3.name}
-                          </option>
-                        ))}
-                    </>
-                  ))}
-                </optgroup>
-              );
-            })}
-        </select>
-      </div>
-
-      {/* Tags */}
-      <TagSelector selectedTagIds={tagIds} onChange={setTagIds} />
-
-      {/* Excerpt */}
-      <div>
-        <label
-          className="block text-sm font-medium mb-2"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Excerpt
-        </label>
-        <textarea
-          value={excerpt}
-          onChange={(e) => setExcerpt(e.target.value)}
-          rows={3}
-          className="w-full px-4 py-3 rounded-lg border outline-none transition-all"
-          style={{
-            background: 'var(--bg-primary)',
-            borderColor: 'var(--border-color)',
-            color: 'var(--text-primary)',
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = 'var(--color-primary)';
-            e.target.style.boxShadow = 'var(--shadow-md)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'var(--border-color)';
-            e.target.style.boxShadow = 'none';
-          }}
-        />
-      </div>
-
-      {/* Content */}
-      <div>
-        <label
-          className="block text-sm font-medium mb-2"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Content (Markdown) *
-        </label>
+      <div className="adm-panel adm-section">
+        {/* Content */}
+        <div className="adm-field">
+          <label>Content (Markdown) *</label>
           <MDEditorWithUpload
             ref={editorRef}
             value={content}
             onChange={setContent}
             height={500}
           />
+        </div>
       </div>
 
-      {/* Published */}
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          id="published"
-          checked={published}
-          onChange={(e) => setPublished(e.target.checked)}
-          className="w-5 h-5"
-        />
-        <label
-          htmlFor="published"
-          className="text-sm font-medium"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Published
-        </label>
+      <div className="adm-panel adm-section">
+        {/* Published */}
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="published"
+            checked={published}
+            onChange={(e) => setPublished(e.target.checked)}
+            className="h-5 w-5 accent-[var(--t-accent)]"
+          />
+          <label
+            htmlFor="published"
+            className="text-sm font-medium"
+            style={{ color: 'var(--t-text2)' }}
+          >
+            Published
+          </label>
+        </div>
       </div>
 
       {/* Actions */}
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-3 rounded-lg font-medium transition-all"
-          style={{
-            background: loading ? 'var(--bg-tertiary)' : 'var(--color-primary)',
-            color: 'white',
-            opacity: loading ? 0.6 : 1,
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}
-          onMouseEnter={(e) => {
-            if (!loading) {
-              e.currentTarget.style.background = 'var(--color-primary-light)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!loading) {
-              e.currentTarget.style.background = 'var(--color-primary)';
-            }
-          }}
+          className="adm-btn adm-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? 'Updating...' : 'Update Post'}
+          <Save size={15} /> {loading ? 'Updating...' : 'Update Post'}
         </button>
 
         <button
           type="button"
           onClick={() => { editorRef.current?.cleanup(); router.back(); }}
-          className="px-6 py-3 rounded-lg font-medium transition-all"
-          style={{
-            color: 'var(--text-secondary)',
-            border: '1px solid var(--border-color)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--bg-tertiary)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-          }}
+          className="adm-btn"
         >
-          Cancel
+          <X size={15} /> Cancel
         </button>
       </div>
     </form>

@@ -1,6 +1,7 @@
 'use client';
 
 import * as Dialog from '@radix-ui/react-dialog';
+import { Trash2 } from 'lucide-react';
 
 interface DeleteConfirmDialogProps {
   open: boolean;
@@ -20,50 +21,19 @@ export default function DeleteConfirmDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 50,
-          }}
-        />
-        <Dialog.Content
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '90vw',
-            maxWidth: '400px',
-            padding: '1.5rem',
-            borderRadius: '12px',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--shadow-lg)',
-            zIndex: 51,
-          }}
-        >
-          <Dialog.Title
-            className="text-lg font-semibold mb-3"
-            style={{ color: 'var(--text-primary)' }}
-          >
+        <div className="adm-root !bg-transparent">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[51] w-[90vw] max-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-[var(--t-radius)] bg-[var(--t-surface)] p-6 text-[var(--t-text)] shadow-[var(--t-shadow)]">
+          <Dialog.Title className="adm-section-title">
             Delete Category
           </Dialog.Title>
 
-          <p style={{ color: 'var(--text-secondary)' }} className="mb-2">
+          <p className="mb-2 text-[var(--t-text2)]">
             Are you sure you want to delete <strong>{categoryName}</strong>?
           </p>
 
           {hasChildren && (
-            <p
-              className="text-sm mb-4 p-3 rounded-lg"
-              style={{
-                background: 'rgba(239, 68, 68, 0.1)',
-                color: '#ef4444',
-                border: '1px solid rgba(239, 68, 68, 0.2)',
-              }}
-            >
+            <p className="mb-4 rounded-[calc(var(--t-radius)-6px)] bg-[color-mix(in_srgb,#f87171_14%,transparent)] p-3 text-sm text-[#f87171]">
               This category has child categories. They will also be deleted.
             </p>
           )}
@@ -71,11 +41,7 @@ export default function DeleteConfirmDialog({
           <div className="flex gap-3 justify-end mt-4">
             <button
               onClick={() => onOpenChange(false)}
-              className="px-4 py-2 rounded-lg transition-all text-sm"
-              style={{
-                border: '1px solid var(--border-color)',
-                color: 'var(--text-secondary)',
-              }}
+              className="adm-btn"
             >
               Cancel
             </button>
@@ -84,16 +50,13 @@ export default function DeleteConfirmDialog({
                 onConfirm();
                 onOpenChange(false);
               }}
-              className="px-4 py-2 rounded-lg transition-all text-sm font-medium"
-              style={{
-                background: '#ef4444',
-                color: 'white',
-              }}
+              className="adm-btn adm-btn-danger"
             >
-              Delete
+              <Trash2 size={15} /> Delete
             </button>
           </div>
         </Dialog.Content>
+        </div>
       </Dialog.Portal>
     </Dialog.Root>
   );

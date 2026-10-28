@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { Copy, Trash2, Upload } from 'lucide-react';
 import type { Media } from '@/types/database';
 
 export default function MediaPage() {
@@ -61,36 +62,20 @@ export default function MediaPage() {
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1
-          className="text-3xl font-bold"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          Media Library
-        </h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="adm-h1">Media Library</h1>
+          <p className="adm-sub mt-1">{media.length} total</p>
+        </div>
 
         <label
-          className="px-6 py-3 rounded-lg font-medium transition-all cursor-pointer"
-          style={{
-            background: uploading
-              ? 'var(--bg-tertiary)'
-              : 'var(--color-primary)',
-            color: 'white',
-            opacity: uploading ? 0.6 : 1,
-          }}
-          onMouseEnter={(e) => {
-            if (!uploading) {
-              e.currentTarget.style.background = 'var(--color-primary-light)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!uploading) {
-              e.currentTarget.style.background = 'var(--color-primary)';
-            }
-          }}
+          className={`adm-btn adm-btn-primary ${
+            uploading ? 'opacity-60 pointer-events-none' : ''
+          }`}
         >
-          {uploading ? 'Uploading...' : '📤 Upload Image'}
+          <Upload size={15} />
+          {uploading ? 'Uploading...' : 'Upload Image'}
           <input
             type="file"
             accept="image/*"
@@ -102,29 +87,23 @@ export default function MediaPage() {
       </div>
 
       {media.length === 0 ? (
-        <div
-          className="card p-12 text-center"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          <p className="text-lg mb-4">No media files yet.</p>
-          <p>Upload your first image to get started</p>
+        <div className="adm-panel adm-section p-12 text-center">
+          <p className="mb-3" style={{ color: 'var(--text-secondary)' }}>
+            No media files yet.
+          </p>
+          <p className="adm-sub">Upload your first image to get started</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {media.map((item) => (
-            <div
-              key={item.id}
-              className="card p-4 transition-all"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--color-primary)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-color)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-              }}
-            >
-              <div className="aspect-square mb-3 rounded-lg overflow-hidden bg-gray-100 relative">
+            <div key={item.id} className="adm-panel p-4">
+              <div
+                className="aspect-square mb-3 overflow-hidden relative"
+                style={{
+                  background: 'var(--t-sunken)',
+                  borderRadius: 'calc(var(--t-radius) - 6px)',
+                }}
+              >
                 <Image
                   src={item.url}
                   alt={item.alt_text || item.filename}
@@ -135,56 +114,33 @@ export default function MediaPage() {
               </div>
 
               <p
-                className="text-sm font-medium mb-2 truncate"
+                className="text-sm font-medium mb-1 truncate"
                 style={{ color: 'var(--text-primary)' }}
               >
                 {item.filename}
               </p>
 
-              <p
-                className="text-xs mb-3"
-                style={{ color: 'var(--text-secondary)' }}
-              >
+              <p className="adm-sub mb-3">
                 {item.size ? Math.round(item.size / 1024) : 0} KB
               </p>
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => copyUrl(item.url)}
-                  className="flex-1 px-3 py-2 rounded-lg text-xs transition-all"
-                  style={{
-                    color: 'var(--color-primary)',
-                    border: '1px solid var(--color-primary)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--color-primary)';
-                    e.currentTarget.style.color = 'white';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = 'var(--color-primary)';
-                  }}
+                  className="adm-btn flex-1"
+                  title="Copy URL"
+                  aria-label={`Copy URL of ${item.filename}`}
                 >
-                  Copy URL
+                  <Copy size={15} /> Copy URL
                 </button>
 
                 <button
                   onClick={() => handleDelete(item.id)}
-                  className="px-3 py-2 rounded-lg text-xs transition-all"
-                  style={{
-                    color: '#ef4444',
-                    border: '1px solid #ef4444',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#ef4444';
-                    e.currentTarget.style.color = 'white';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = '#ef4444';
-                  }}
+                  className="adm-icon-btn danger"
+                  title="Delete"
+                  aria-label={`Delete ${item.filename}`}
                 >
-                  Delete
+                  <Trash2 size={15} />
                 </button>
               </div>
             </div>

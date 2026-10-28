@@ -59,7 +59,7 @@ export default function CategoryNode({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    marginLeft: `${node.depth * 2}rem`,
+    paddingLeft: `${node.depth * 2}rem`,
   };
 
   const cat = node.category;
@@ -87,46 +87,39 @@ export default function CategoryNode({
   }
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`border-t border-[var(--t-border-soft)] first:border-t-0 hover:bg-[var(--t-sunken)] ${
+        isDragging ? 'bg-[var(--t-sunken)]' : ''
+      }`}
+    >
       {isOver && (
-        <div
-          style={{
-            height: 2,
-            background: 'var(--color-primary)',
-            borderRadius: 1,
-            marginBottom: 2,
-          }}
-        />
+        <div className="mb-0.5 h-0.5 rounded-sm bg-[var(--t-accent)]" />
       )}
-      <div
-        className="card p-3 mb-2 flex items-center gap-3 transition-all"
-        style={{
-          borderColor: isDragging ? 'var(--color-primary)' : undefined,
-        }}
-      >
+      <div className="flex items-center gap-2 px-4 py-3">
         {/* Drag handle */}
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1 rounded"
-          style={{ color: 'var(--text-muted)', touchAction: 'none' }}
+          className="adm-icon-btn cursor-grab active:cursor-grabbing"
+          style={{ touchAction: 'none' }}
           aria-label="Drag to reorder"
         >
-          <GripVertical size={16} />
+          <GripVertical size={15} />
         </button>
 
         {/* Expand/collapse */}
         {node.hasChildren ? (
           <button
             onClick={() => onToggle(node.id)}
-            className="p-1 rounded transition-all"
-            style={{ color: 'var(--text-secondary)' }}
+            className="adm-icon-btn"
             aria-label={collapsed ? 'Expand' : 'Collapse'}
           >
-            {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+            {collapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
           </button>
         ) : (
-          <span style={{ width: 24 }} />
+          <span className="inline-block w-8" />
         )}
 
         {/* Category info */}
@@ -139,34 +132,20 @@ export default function CategoryNode({
               onChange={(e) => setEditValue(e.target.value)}
               onBlur={commitEdit}
               onKeyDown={handleKeyDown}
-              className="font-semibold bg-transparent border-b outline-none"
-              style={{
-                color: 'var(--text-primary)',
-                borderColor: 'var(--color-primary)',
-                minWidth: 0,
-                width: 'auto',
-              }}
+              className="adm-input"
+              style={{ width: 'auto', minWidth: 0 }}
             />
           ) : (
             <span
-              className="font-semibold"
-              style={{ color: 'var(--text-primary)', cursor: 'pointer' }}
+              className="cursor-pointer font-semibold text-[var(--t-text)]"
               onDoubleClick={handleDoubleClick}
               title="Double-click to rename"
             >
               {cat.name}
             </span>
           )}
-          <span className="text-sm ml-2" style={{ color: 'var(--text-muted)' }}>
-            /{cat.slug}
-          </span>
-          <span
-            className="text-xs ml-2 px-2 py-0.5 rounded-full"
-            style={{
-              background: 'var(--bg-tertiary)',
-              color: 'var(--text-secondary)',
-            }}
-          >
+          <span className="adm-sub ml-2">/{cat.slug}</span>
+          <span className="ml-2 rounded-full bg-[var(--t-sunken)] px-2 py-0.5 text-xs text-[var(--t-text2)]">
             L{cat.level}
           </span>
         </div>
@@ -176,28 +155,28 @@ export default function CategoryNode({
           {cat.level < 3 && (
             <button
               onClick={() => onAddChild(cat.id)}
-              className="p-2 rounded-lg transition-all"
-              style={{ color: 'var(--text-secondary)' }}
+              className="adm-icon-btn"
               title="Add child"
+              aria-label={`Add child to ${cat.name}`}
             >
-              <Plus size={16} />
+              <Plus size={15} />
             </button>
           )}
           <button
             onClick={() => onEdit(cat)}
-            className="p-2 rounded-lg transition-all"
-            style={{ color: 'var(--text-secondary)' }}
+            className="adm-icon-btn"
             title="Edit"
+            aria-label={`Edit ${cat.name}`}
           >
-            <Pencil size={16} />
+            <Pencil size={15} />
           </button>
           <button
             onClick={() => onDelete(cat)}
-            className="p-2 rounded-lg transition-all"
-            style={{ color: '#ef4444' }}
+            className="adm-icon-btn danger"
             title="Delete"
+            aria-label={`Delete ${cat.name}`}
           >
-            <Trash2 size={16} />
+            <Trash2 size={15} />
           </button>
         </div>
       </div>

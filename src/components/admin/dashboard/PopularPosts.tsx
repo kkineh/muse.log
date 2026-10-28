@@ -6,44 +6,30 @@ interface Props {
 
 export default function PopularPosts({ data }: Props) {
   return (
-    <div className="card p-6">
-      <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-        Popular Posts
-      </h3>
+    <div className="adm-panel adm-section">
+      <h3 className="adm-section-title">Popular Posts</h3>
       {data.length === 0 ? (
-        <div className="flex items-center justify-center h-[200px]" style={{ color: 'var(--text-secondary)' }}>
+        <div className="adm-sub flex items-center justify-center h-[200px]">
           No view data yet
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="-mx-[1.4rem] -mb-[1.25rem]">
           {data.map((post, i) => (
             <a
               key={post.slug}
               href={`/admin/posts/${post.slug}/edit`}
-              className="flex items-center gap-3 p-3 rounded-lg transition-colors"
-              style={{
-                background: 'var(--bg-tertiary)',
-                textDecoration: 'none',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
+              className="flex items-center gap-3 px-[1.4rem] py-3 no-underline transition-colors hover:bg-[var(--t-sunken)] border-t border-[var(--t-border-soft)] first:border-t-0"
             >
               <span
-                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={{
-                  background: i < 3 ? 'var(--color-primary)' : 'var(--bg-secondary)',
-                  color: i < 3 ? '#fff' : 'var(--text-secondary)',
-                }}
+                className="w-5 text-xs font-semibold flex-shrink-0 tabular-nums"
+                style={{ color: i < 3 ? 'var(--t-accent)' : 'var(--t-muted)' }}
               >
                 {i + 1}
               </span>
-              <span
-                className="text-sm truncate flex-1"
-                style={{ color: 'var(--text-primary)' }}
-              >
+              <span className="text-sm truncate flex-1" style={{ color: 'var(--t-text)' }}>
                 {post.title}
               </span>
-              <span className="text-xs font-medium flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
+              <span className="text-xs flex-shrink-0 tabular-nums" style={{ color: 'var(--t-text2)' }}>
                 {post.view_count.toLocaleString()} views
               </span>
             </a>

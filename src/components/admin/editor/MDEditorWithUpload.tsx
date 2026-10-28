@@ -11,6 +11,7 @@ import {
   ClipboardEvent,
 } from 'react';
 import dynamic from 'next/dynamic';
+import { ImagePlus } from 'lucide-react';
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
 const MermaidPreview = dynamic(() => import('@/components/MermaidDiagram'), { ssr: false });
@@ -174,36 +175,21 @@ const MDEditorWithUpload = forwardRef<MDEditorWithUploadRef, Props>(
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onPaste={handlePaste}
-        style={{
-          position: 'relative',
-          outline: dragOver ? '2px dashed var(--color-primary)' : 'none',
-          borderRadius: '8px',
-        }}
+        className={`relative rounded-[var(--t-radius)] ${
+          dragOver ? 'outline-2 outline-dashed outline-[var(--t-accent)]' : 'outline-none'
+        }`}
       >
         {/* Upload toolbar */}
-        <div
-          className="flex items-center gap-2 px-3 py-2 mb-1 rounded-t-lg text-sm"
-          style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}
-        >
+        <div className="mb-1 flex items-center gap-3 rounded-t-[var(--t-radius)] bg-[var(--t-surface)] px-3 py-2 text-sm">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-colors"
-            style={{
-              background: 'var(--bg-primary)',
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--border-color)',
-              cursor: 'pointer',
-            }}
+            className="adm-btn !h-8 text-xs"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21 15 16 10 5 21" />
-            </svg>
+            <ImagePlus size={15} />
             이미지 첨부
           </button>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>
+          <span className="adm-hint !mt-0">
             드래그&드롭 또는 Ctrl+V로도 첨부 가능 · 글 저장 시 업로드됩니다
           </span>
         </div>
@@ -213,25 +199,18 @@ const MDEditorWithUpload = forwardRef<MDEditorWithUploadRef, Props>(
           type="file"
           accept="image/jpeg,image/png,image/gif,image/webp"
           onChange={handleFileInput}
-          style={{ display: 'none' }}
+          className="hidden"
         />
 
         {dragOver && (
-          <div
-            style={{
-              position: 'absolute', inset: 0, zIndex: 10,
-              background: 'rgba(var(--color-primary-rgb, 99,102,241), 0.08)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '8px', pointerEvents: 'none',
-            }}
-          >
-            <span style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: 16 }}>
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[var(--t-radius)] bg-[color-mix(in_srgb,var(--t-accent)_8%,transparent)]">
+            <span className="text-base font-semibold text-[var(--t-accent)]">
               이미지를 놓으세요
             </span>
           </div>
         )}
 
-        <div data-color-mode="light">
+        <div data-color-mode="light" className="overflow-hidden rounded-[var(--t-radius)]">
           <MDEditor
             value={value}
             onChange={(val) => onChange(val || '')}

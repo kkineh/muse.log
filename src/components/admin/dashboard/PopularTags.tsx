@@ -10,39 +10,40 @@ export default function PopularTags({ data }: Props) {
   const maxCount = Math.max(...data.map((t) => t.post_count), 1);
 
   return (
-    <div className="card p-6">
-      <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-        Popular Tags
-      </h3>
+    <div className="adm-panel adm-section">
+      <h3 className="adm-section-title">Popular Tags</h3>
       {data.length === 0 ? (
-        <div className="flex items-center justify-center h-[200px]" style={{ color: 'var(--text-secondary)' }}>
+        <div className="adm-sub flex items-center justify-center h-[200px]">
           No tags yet
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="-mx-[1.4rem] -mb-[1.25rem]">
           {data.map((tag) => (
-            <div key={tag.name} className="flex items-center gap-3">
+            <div
+              key={tag.name}
+              className="flex items-center gap-3 px-[1.4rem] py-3 transition-colors hover:bg-[var(--t-sunken)] border-t border-[var(--t-border-soft)] first:border-t-0"
+            >
               <span
-                className="w-3 h-3 rounded-full flex-shrink-0"
+                className="w-2 h-2 rounded-full flex-shrink-0"
                 style={{ background: tagColor(tag.color) }}
               />
               <span
                 className="text-sm flex-shrink-0 w-24 truncate"
-                style={{ color: 'var(--text-primary)' }}
+                style={{ color: 'var(--t-text)' }}
               >
                 {tag.name}
               </span>
-              <div className="flex-1 h-5 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--t-sunken)' }}>
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
                     width: `${(tag.post_count / maxCount) * 100}%`,
                     background: tagColor(tag.color),
-                    opacity: 0.7,
+                    opacity: 0.8,
                   }}
                 />
               </div>
-              <span className="text-sm font-medium flex-shrink-0 w-8 text-right" style={{ color: 'var(--text-secondary)' }}>
+              <span className="text-sm flex-shrink-0 w-8 text-right tabular-nums" style={{ color: 'var(--t-text2)' }}>
                 {tag.post_count}
               </span>
             </div>

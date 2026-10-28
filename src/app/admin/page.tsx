@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import type { DashboardData } from '@/types/database';
 import PostTimelineChart from '@/components/admin/dashboard/PostTimelineChart';
 import CategoryDistribution from '@/components/admin/dashboard/CategoryDistribution';
@@ -63,106 +65,50 @@ export default function AdminDashboard() {
   }
 
   const cards = [
-    { title: 'Total Posts', value: data.total_posts, icon: '📝', color: '#0c8bc9' },
-    { title: 'Published', value: data.published_posts, icon: '✅', color: '#10b981' },
-    { title: 'Drafts', value: data.draft_posts, icon: '📄', color: '#f59e0b' },
-    { title: 'Categories', value: data.total_categories, icon: '📁', color: '#8b5cf6' },
-    { title: 'Media Files', value: data.total_media, icon: '🖼️', color: '#ec4899' },
-    { title: 'Storage', value: formatBytes(data.storage_used), icon: '💾', color: '#6366f1' },
+    { title: 'Posts', value: data.total_posts },
+    { title: 'Published', value: data.published_posts },
+    { title: 'Drafts', value: data.draft_posts },
+    { title: 'Categories', value: data.total_categories },
+    { title: 'Media', value: data.total_media },
+    { title: 'Storage', value: formatBytes(data.storage_used) },
   ];
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8" style={{ color: 'var(--text-primary)' }}>
-        Dashboard
-      </h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="adm-h1">Dashboard</h1>
+        <Link href="/admin/posts/new" className="adm-btn adm-btn-primary">
+          <Plus size={15} /> New post
+        </Link>
+      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        {cards.map((card) => (
-          <div
-            key={card.title}
-            className="card p-4 transition-all"
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = card.color;
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border-color)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-            }}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl">{card.icon}</span>
-              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                {card.title}
-              </span>
+      <div className="adm-dash">
+        <div className="adm-stats">
+          {cards.map((card) => (
+            <div key={card.title} className="adm-stat">
+              <div className="adm-label">{card.title}</div>
+              <div className="adm-stat-value">{card.value}</div>
             </div>
-            <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-              {card.value}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Post Timeline Chart */}
-      <div className="mb-8">
-        <PostTimelineChart data={data.post_timeline} />
-      </div>
-
-      {/* Category Distribution + Popular Tags */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <CategoryDistribution data={data.category_distribution} />
-        <PopularTags data={data.popular_tags} />
-      </div>
-
-      {/* Recent Posts + Popular Posts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <RecentPosts data={data.recent_posts} />
-        <PopularPosts data={data.popular_posts} />
-      </div>
-
-      {/* Storage Gauge */}
-      <div className="mb-8">
-        <StorageGauge storageUsed={data.storage_used} totalMedia={data.total_media} />
-      </div>
-
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            { href: '/admin/posts/new', icon: '➕', title: 'New Post', desc: 'Create a new blog post' },
-            { href: '/admin/media', icon: '📤', title: 'Upload Media', desc: 'Upload images and files' },
-            { href: '/admin/categories', icon: '📂', title: 'Manage Categories', desc: 'Organize your content' },
-          ].map((action) => (
-            <a
-              key={action.href}
-              href={action.href}
-              className="card p-4 flex items-center gap-4 transition-all"
-              style={{ textDecoration: 'none' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--color-primary)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-color)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-              }}
-            >
-              <span className="text-3xl">{action.icon}</span>
-              <div>
-                <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  {action.title}
-                </h3>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  {action.desc}
-                </p>
-              </div>
-            </a>
           ))}
+        </div>
+
+        <div>
+          <PostTimelineChart data={data.post_timeline} />
+        </div>
+        <div>
+          <StorageGauge storageUsed={data.storage_used} totalMedia={data.total_media} />
+        </div>
+        <div className="d-half">
+          <RecentPosts data={data.recent_posts} />
+        </div>
+        <div className="d-half">
+          <PopularPosts data={data.popular_posts} />
+        </div>
+        <div className="d-half">
+          <PopularTags data={data.popular_tags} />
+        </div>
+        <div className="d-half">
+          <CategoryDistribution data={data.category_distribution} />
         </div>
       </div>
     </div>

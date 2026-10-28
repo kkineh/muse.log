@@ -102,9 +102,9 @@ export default function PostTimelineChart({ data }: Props) {
     mode === 'yearly'
       ? {
           dataKey: 'date',
-          tick: { fill: 'var(--text-secondary)', fontSize: 11 },
+          tick: { fill: 'var(--t-muted)', fontSize: 11 },
           tickLine: false,
-          axisLine: { stroke: 'var(--border-color)' },
+          axisLine: { stroke: 'var(--t-border-soft)' },
           interval: 0 as const,
           tickFormatter: (value: string) => {
             const d = new Date(value);
@@ -113,34 +113,32 @@ export default function PostTimelineChart({ data }: Props) {
         }
       : {
           dataKey: 'label',
-          tick: { fill: 'var(--text-secondary)', fontSize: 12 },
+          tick: { fill: 'var(--t-muted)', fontSize: 12 },
           tickLine: false,
-          axisLine: { stroke: 'var(--border-color)' },
+          axisLine: { stroke: 'var(--t-border-soft)' },
           interval: getXAxisInterval(mode),
         };
 
   return (
-    <div className="card p-6">
+    <div className="adm-panel adm-section">
       <div className="flex items-center justify-between mb-4">
-        <h3
-          className="text-lg font-semibold"
-          style={{ color: 'var(--text-primary)' }}
-        >
+        <h3 className="adm-section-title" style={{ marginBottom: 0 }}>
           Post Upload Timeline
         </h3>
         <div
-          className="flex gap-1 rounded-lg p-1"
-          style={{ background: 'var(--bg-tertiary)' }}
+          className="flex gap-0.5 p-0.5"
+          style={{ background: 'var(--t-sunken)', borderRadius: 'calc(var(--t-radius) - 6px)' }}
         >
           {modes.map((m) => (
             <button
               key={m.value}
               onClick={() => setMode(m.value)}
-              className="px-3 py-1 rounded-md text-sm font-medium transition-colors"
+              className="px-2.5 py-1 text-xs font-medium transition-colors"
               style={{
-                background:
-                  mode === m.value ? 'var(--color-primary)' : 'transparent',
-                color: mode === m.value ? '#fff' : 'var(--text-secondary)',
+                borderRadius: 'calc(var(--t-radius) - 8px)',
+                background: mode === m.value ? 'var(--t-surface)' : 'transparent',
+                boxShadow: mode === m.value ? 'var(--t-shadow)' : 'none',
+                color: mode === m.value ? 'var(--t-accent)' : 'var(--t-muted)',
               }}
             >
               {m.label}
@@ -150,10 +148,7 @@ export default function PostTimelineChart({ data }: Props) {
       </div>
 
       {chartData.length === 0 ? (
-        <div
-          className="flex items-center justify-center h-[250px]"
-          style={{ color: 'var(--text-secondary)' }}
-        >
+        <div className="adm-sub flex items-center justify-center h-[250px]">
           No posts this year
         </div>
       ) : (
@@ -164,22 +159,25 @@ export default function PostTimelineChart({ data }: Props) {
           >
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="var(--border-color)"
+              stroke="var(--t-border-soft)"
             />
             <XAxis {...xAxisProps} />
             <YAxis
               allowDecimals={false}
-              tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
+              tick={{ fill: 'var(--t-muted)', fontSize: 12 }}
               tickLine={false}
-              axisLine={{ stroke: 'var(--border-color)' }}
+              axisLine={{ stroke: 'var(--t-border-soft)' }}
             />
             <Tooltip
+              cursor={{ fill: 'color-mix(in srgb, var(--t-accent) 15%, transparent)' }}
               contentStyle={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                color: 'var(--text-primary)',
+                background: 'var(--t-surface)',
+                border: 'none',
+                borderRadius: 'calc(var(--t-radius) - 6px)',
+                boxShadow: 'var(--t-shadow)',
+                color: 'var(--t-text)',
               }}
+              itemStyle={{ color: 'var(--t-text2)' }}
               labelFormatter={(_, payload) => {
                 if (payload && payload.length > 0) {
                   const date = payload[0]?.payload?.date;
@@ -193,7 +191,7 @@ export default function PostTimelineChart({ data }: Props) {
             />
             <Bar
               dataKey="count"
-              fill="var(--color-primary)"
+              fill="var(--t-accent)"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>

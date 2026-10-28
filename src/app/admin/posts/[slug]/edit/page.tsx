@@ -2,7 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import { createClient, isAdmin } from '@/lib/supabase-server';
 import { decodeSlug } from '@/lib/slug';
 import { EditPostForm } from './EditPostForm';
-import type { Category, PostWithCategoryAndTags } from '@/types/database';
+import type { PostWithCategoryAndTags } from '@/types/database';
 
 interface EditPostPageProps {
   params: Promise<{
@@ -47,13 +47,10 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
   const categories = categoriesData || [];
 
   return (
-    <div>
-      <h1
-        className="text-3xl font-bold mb-8"
-        style={{ color: 'var(--text-primary)' }}
-      >
-        Edit Post
-      </h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="adm-h1">Edit Post</h1>
+      </div>
 
       <EditPostForm
         post={post as PostWithCategoryAndTags}

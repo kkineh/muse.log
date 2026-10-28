@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Check, Pencil, Trash2, X } from 'lucide-react';
 import type { TagWithPostCount } from '@/types/database';
 import { tagColor, tagMix } from '@/lib/tag-color';
 
@@ -96,98 +97,54 @@ export default function TagsPage() {
   };
 
   if (loading) {
-    return (
-      <div style={{ color: 'var(--text-secondary)' }}>Loading tags...</div>
-    );
+    return <div className="adm-sub">Loading tags...</div>;
   }
 
   return (
-    <div>
-      <h1
-        className="text-3xl font-bold mb-8"
-        style={{ color: 'var(--text-primary)' }}
-      >
-        Tags
-      </h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="adm-h1">Tags</h1>
+          <p className="adm-sub mt-1">{tags.length} total</p>
+        </div>
+      </div>
 
       {/* Create new tag */}
-      <form
-        onSubmit={handleCreate}
-        className="mb-8 p-6 rounded-lg border"
-        style={{
-          background: 'var(--bg-secondary)',
-          borderColor: 'var(--border-color)',
-        }}
-      >
-        <h2
-          className="text-lg font-semibold mb-4"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          Create Tag
-        </h2>
+      <form onSubmit={handleCreate} className="adm-panel adm-section">
+        <h2 className="adm-section-title">Create Tag</h2>
         <div className="flex gap-4 items-end flex-wrap">
-          <div className="flex-1 min-w-[200px]">
-            <label
-              className="block text-sm mb-1"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Name *
-            </label>
+          <div className="adm-field flex-1 min-w-[200px]">
+            <label>Name *</label>
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               required
-              className="w-full px-3 py-2 rounded-lg border outline-none"
-              style={{
-                background: 'var(--bg-primary)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-primary)',
-              }}
+              className="adm-input"
             />
           </div>
-          <div className="flex-1 min-w-[200px]">
-            <label
-              className="block text-sm mb-1"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Slug (auto-generated if empty)
-            </label>
+          <div className="adm-field flex-1 min-w-[200px]">
+            <label>Slug (auto-generated if empty)</label>
             <input
               type="text"
               value={newSlug}
               onChange={(e) => setNewSlug(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border outline-none"
-              style={{
-                background: 'var(--bg-primary)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-primary)',
-              }}
+              className="adm-input"
             />
           </div>
-          <div>
-            <label
-              className="block text-sm mb-1"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Color
-            </label>
+          <div className="adm-field">
+            <label>Color</label>
             <input
               type="color"
               value={newColor}
               onChange={(e) => setNewColor(e.target.value)}
-              className="w-12 h-10 rounded cursor-pointer border-0"
+              className="w-12 h-[2.3rem] p-0 rounded cursor-pointer border-0 bg-transparent"
             />
           </div>
           <button
             type="submit"
             disabled={creating}
-            className="px-6 py-2 rounded-lg font-medium transition-all"
-            style={{
-              background: creating ? 'var(--bg-tertiary)' : 'var(--color-primary)',
-              color: 'white',
-              opacity: creating ? 0.6 : 1,
-            }}
+            className="adm-btn adm-btn-primary disabled:opacity-60"
           >
             {creating ? 'Creating...' : 'Create'}
           </button>
@@ -195,142 +152,84 @@ export default function TagsPage() {
       </form>
 
       {/* Tags list */}
-      <div
-        className="rounded-lg border overflow-hidden"
-        style={{
-          background: 'var(--bg-secondary)',
-          borderColor: 'var(--border-color)',
-        }}
-      >
-        <table className="w-full">
+      <div className="adm-panel">
+        <table className="adm-table">
           <thead>
-            <tr
-              className="border-b"
-              style={{ borderColor: 'var(--border-color)' }}
-            >
-              <th
-                className="text-left px-6 py-3 text-sm font-medium"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Color
-              </th>
-              <th
-                className="text-left px-6 py-3 text-sm font-medium"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Name
-              </th>
-              <th
-                className="text-left px-6 py-3 text-sm font-medium"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Slug
-              </th>
-              <th
-                className="text-left px-6 py-3 text-sm font-medium"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Posts
-              </th>
-              <th
-                className="text-right px-6 py-3 text-sm font-medium"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Actions
-              </th>
+            <tr>
+              <th>Color</th>
+              <th>Name</th>
+              <th>Slug</th>
+              <th>Posts</th>
+              <th className="right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {tags.length === 0 ? (
               <tr>
-                <td
-                  colSpan={5}
-                  className="px-6 py-8 text-center text-sm"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
+                <td colSpan={5} className="text-center">
                   No tags yet. Create one above.
                 </td>
               </tr>
             ) : (
               tags.map((tag) => (
-                <tr
-                  key={tag.id}
-                  className="border-b"
-                  style={{ borderColor: 'var(--border-color)' }}
-                >
+                <tr key={tag.id}>
                   {editingId === tag.id ? (
                     <>
-                      <td className="px-6 py-3">
+                      <td>
                         <input
                           type="color"
                           value={editColor}
                           onChange={(e) => setEditColor(e.target.value)}
-                          className="w-8 h-8 rounded cursor-pointer border-0"
+                          className="w-8 h-8 p-0 rounded cursor-pointer border-0 bg-transparent"
                         />
                       </td>
-                      <td className="px-6 py-3">
+                      <td>
                         <input
                           type="text"
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          className="px-2 py-1 rounded border outline-none text-sm w-full"
-                          style={{
-                            background: 'var(--bg-primary)',
-                            borderColor: 'var(--border-color)',
-                            color: 'var(--text-primary)',
-                          }}
+                          className="adm-input"
                         />
                       </td>
-                      <td className="px-6 py-3">
+                      <td>
                         <input
                           type="text"
                           value={editSlug}
                           onChange={(e) => setEditSlug(e.target.value)}
-                          className="px-2 py-1 rounded border outline-none text-sm w-full"
-                          style={{
-                            background: 'var(--bg-primary)',
-                            borderColor: 'var(--border-color)',
-                            color: 'var(--text-primary)',
-                          }}
+                          className="adm-input"
                         />
                       </td>
-                      <td
-                        className="px-6 py-3 text-sm"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                        {tag.post_count}
-                      </td>
-                      <td className="px-6 py-3 text-right">
+                      <td>{tag.post_count}</td>
+                      <td className="right">
                         <button
                           onClick={() => handleUpdate(tag.id)}
-                          className="text-sm px-3 py-1 rounded"
-                          style={{ color: 'var(--color-primary)' }}
+                          className="adm-icon-btn"
+                          title="Save"
+                          aria-label={`Save ${tag.name}`}
                         >
-                          Save
+                          <Check size={15} />
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          className="text-sm px-3 py-1 rounded ml-2"
-                          style={{ color: 'var(--text-secondary)' }}
+                          className="adm-icon-btn"
+                          title="Cancel"
+                          aria-label="Cancel editing"
                         >
-                          Cancel
+                          <X size={15} />
                         </button>
                       </td>
                     </>
                   ) : (
                     <>
-                      <td className="px-6 py-3">
+                      <td>
                         <span
                           className="w-6 h-6 rounded-full inline-block"
                           style={{ backgroundColor: tagColor(tag.color) }}
                         />
                       </td>
-                      <td
-                        className="px-6 py-3 text-sm font-medium"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
+                      <td>
                         <span
-                          className="inline-flex items-center px-3 py-1 rounded-full"
+                          className="inline-flex items-center px-3 py-1 rounded-full font-medium"
                           style={{
                             backgroundColor: tagMix(tag.color, 13),
                             color: tagColor(tag.color),
@@ -340,32 +239,24 @@ export default function TagsPage() {
                           {tag.name}
                         </span>
                       </td>
-                      <td
-                        className="px-6 py-3 text-sm"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                        {tag.slug}
-                      </td>
-                      <td
-                        className="px-6 py-3 text-sm"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                        {tag.post_count}
-                      </td>
-                      <td className="px-6 py-3 text-right">
+                      <td>{tag.slug}</td>
+                      <td>{tag.post_count}</td>
+                      <td className="right">
                         <button
                           onClick={() => startEdit(tag)}
-                          className="text-sm px-3 py-1 rounded"
-                          style={{ color: 'var(--color-primary)' }}
+                          className="adm-icon-btn"
+                          title="Edit"
+                          aria-label={`Edit ${tag.name}`}
                         >
-                          Edit
+                          <Pencil size={15} />
                         </button>
                         <button
                           onClick={() => handleDelete(tag.id, tag.name)}
-                          className="text-sm px-3 py-1 rounded ml-2"
-                          style={{ color: '#ef4444' }}
+                          className="adm-icon-btn danger"
+                          title="Delete"
+                          aria-label={`Delete ${tag.name}`}
                         >
-                          Delete
+                          <Trash2 size={15} />
                         </button>
                       </td>
                     </>
