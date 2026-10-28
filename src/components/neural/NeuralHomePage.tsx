@@ -18,8 +18,9 @@ const SOCIAL_LINKS = [
   { label: 'GitHub', href: GITHUB_URL, Icon: FaGithub, external: true },
   { label: 'LinkedIn', href: LINKEDIN_URL, Icon: FaLinkedin, external: true },
   { label: 'Email', href: MAIL_URL, Icon: MdEmail, external: false },
-  { label: 'Admin', href: '/admin', Icon: Settings, external: false },
 ];
+
+const ADMIN_LINK = { label: 'Admin', href: '/admin', Icon: Settings, external: false };
 
 const ICON_LINK_CLASS =
   'flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--neural-text-primary)]';
@@ -27,9 +28,10 @@ const ICON_LINK_CLASS =
 interface NeuralHomePageProps {
   initialGraph: NeuralGraphData;
   tagPostLinks?: { source: string; target: string; sharedCount: number }[];
+  isAdmin?: boolean;
 }
 
-export function NeuralHomePage({ initialGraph, tagPostLinks }: NeuralHomePageProps) {
+export function NeuralHomePage({ initialGraph, tagPostLinks, isAdmin }: NeuralHomePageProps) {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [highlightedPosts, setHighlightedPosts] = useState<string[]>([]);
@@ -93,7 +95,7 @@ export function NeuralHomePage({ initialGraph, tagPostLinks }: NeuralHomePagePro
       />
 
       <div className="fixed bottom-[84px] right-4 z-30 flex items-center gap-1 md:bottom-[55px] md:right-8">
-        {SOCIAL_LINKS.map(({ label, href, Icon, external }) =>
+        {(isAdmin ? [...SOCIAL_LINKS, ADMIN_LINK] : SOCIAL_LINKS).map(({ label, href, Icon, external }) =>
           href.startsWith('/') ? (
             <Link
               key={label}
