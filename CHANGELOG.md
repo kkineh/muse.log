@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- **Brain vault publishing (roadmap ②)** - see `docs/design/brain-publish.md`
+  - `scripts/brain-publish.mjs`: validates `brain/blog/*.md` (`publish: true`) and upserts posts, tags, images, `post_sources`, `post_links`. Dry-run by default, `--apply` to write, `--revalidate-only` to retry revalidation
+  - `scripts/brain-export.mjs`: one-off migration of existing posts into the vault (dry-run / `--apply`)
+  - `POST /api/revalidate`: Bearer `REVALIDATE_SECRET` (32+ bytes), revalidates `/` (layout), `/api/posts`, `/api/tags`, `/api/tags/graph`
+  - Migration `006_brain_publish.sql`: `posts.origin` (`admin` | `brain`), `post_sources`, `post_links`, `blog_index` view, `guard_brain_posts` trigger, `brain/` storage policies. Applied to production on 2026-10-29
+  - `BRAIN_STORAGE_PREFIX` (`brain/`) in `src/lib/constants.ts`; `yaml` dev dependency
+  - Script tests under `scripts/lib/*.test.mjs` (`node --test`)
+
 - **D3.js Force Simulation Integration**
   - Implemented physics-based node positioning using D3.js force simulation
   - Components and Hooks:
@@ -96,6 +104,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Cache duration constants for categories and posts
 
 ### Changed
+- **Brain-origin posts are locked in admin**
+  - `PATCH /api/posts` on an `origin: 'brain'` post accepts only `category_id` and `tag_ids`; anything else returns 409. `DELETE` returns 409 (unpublish with `publish: false` in brain)
+  - `origin` cannot be set or changed through the API; new admin posts are always `origin: 'admin'`
+  - Edit form disables title, content (read-only preview), excerpt and published for brain posts
+  - `DELETE /api/media` returns 409 for `brain/` images; post delete never removes `brain/` images
+  - `GET /api/posts` admin responses are `private, no-store` instead of edge-cached
+- **Tag pages**: `/tags/[slug]` now uses `dynamicParams = true` so newly published tags render without a rebuild
 - **Homepage UI paradigm**: Completely replaced 3-panel layout with neural network visualization
   - Removed traditional sidebar navigation
   - Removed post list view from homepage
@@ -116,6 +131,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Category page layout**: Refactored to 3-column responsive design with `CategoryInfo` sidebar
 
 ### Fixed
+- **Admin delete errors**: post and media delete in admin now show the API error instead of silently succeeding
 - **Hydration error**: Fixed SSR mismatch in NeuralNetwork component
   - Removed dynamic `window.innerWidth` usage during SSR
   - Implemented SVG viewBox for responsive coordinate system

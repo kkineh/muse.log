@@ -138,7 +138,12 @@ NEXT_PUBLIC_ADMIN_EMAIL=your-admin-email@example.com
 
 # OpenAI
 OPENAI_API_KEY=sk-proj-your-key
+
+# On-demand revalidation for brain publishing (32+ bytes, also set in Vercel)
+REVALIDATE_SECRET=random-hex-string
 ```
+
+See `.env.local.example` for the full list. Brain publishing keys go in a separate file (see [brain 발행](#brain-발행)).
 
 ### 4. Database Setup
 
@@ -322,6 +327,7 @@ Manage via Admin Panel → Categories.
 6. If content/title changed and post is published:
    - Embedding is automatically regenerated
    - Changes reflect in RAG chatbot within minutes
+7. Brain-origin posts (`origin: 'brain'`): only category and tags can be changed in admin; title, content, excerpt, published and delete are locked (API returns 409). Edit them in the brain vault
 
 ### Deleting Posts
 
@@ -341,6 +347,34 @@ Manage via Admin Panel → Categories.
 1. Go to `/admin/media`
 2. Click "Upload Image"
 3. Copy URL to use in posts
+
+Images under `brain/` are managed by the publish script and cannot be deleted from admin.
+
+### brain 발행
+
+Publishes posts written in the brain Obsidian vault (`brain/blog/*.md` with `publish: true`) straight to Supabase, without a git push or rebuild. Design: `docs/design/brain-publish.md`. Requires migration `006_brain_publish.sql` (applied to production on 2026-10-29).
+
+Create `.env.brain.local` (gitignored, never loaded by Next.js; `NEXT_PUBLIC_SUPABASE_URL` is read from `.env.local`):
+
+```env
+SUPABASE_SERVICE_ROLE_KEY=service-role-key   # never put in Vercel
+SITE_URL=https://your-blog-domain
+REVALIDATE_SECRET=same-value-as-vercel       # must match REVALIDATE_SECRET in Vercel
+```
+
+```bash
+# Publish (dry-run by default: validates and prints the plan, writes nothing)
+node scripts/brain-publish.mjs --brain D:/workspace/brain
+node scripts/brain-publish.mjs --brain D:/workspace/brain --apply   # upload images, write DB, revalidate
+node scripts/brain-publish.mjs --revalidate-only                    # retry revalidation only
+
+# One-off migration of existing posts into the vault
+node scripts/brain-export.mjs --brain D:/workspace/brain [--apply]
+```
+
+Exit codes: `0` success, `1` validation violation / export verification diff / runtime error (nothing is written on a violation), `2` usage error or missing env key. Writes are idempotent, so re-run after fixing the cause. If the script reports posts to reindex, regenerate embeddings in `/admin/rag`.
+
+Brain-origin posts are body-locked in admin: only category and tags can be edited there.
 
 ## 🤝 Contributing
 
