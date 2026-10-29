@@ -25,6 +25,7 @@ export interface Post {
   published: boolean;
   author_id: string | null;
   view_count: number;
+  origin: 'admin' | 'brain';
 }
 
 export interface Media {

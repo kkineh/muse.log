@@ -55,38 +55,38 @@ function getMockData(): { categories: Category[]; posts: Post[] } {
 
   const posts: Post[] = [
     // IT / 개발 > Frontend
-    { id: 'post-ts', title: '타입스크립트 제네릭이 갑자기 이해된 날', slug: 'typescript-generics', content: '', excerpt: null, category_id: 'sub-frontend', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
-    { id: 'post-ai', title: 'AI 코드 어시스턴트 6개월 후기', slug: 'ai-code-assistant-review', content: '', excerpt: null, category_id: 'sub-frontend', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
-    { id: 'post-react19', title: 'React 19 액션 패턴 실험', slug: 'react-19-actions', content: '', excerpt: null, category_id: 'sub-frontend', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
+    { id: 'post-ts', title: '타입스크립트 제네릭이 갑자기 이해된 날', slug: 'typescript-generics', content: '', excerpt: null, category_id: 'sub-frontend', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
+    { id: 'post-ai', title: 'AI 코드 어시스턴트 6개월 후기', slug: 'ai-code-assistant-review', content: '', excerpt: null, category_id: 'sub-frontend', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
+    { id: 'post-react19', title: 'React 19 액션 패턴 실험', slug: 'react-19-actions', content: '', excerpt: null, category_id: 'sub-frontend', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
 
     // IT / 개발 > Backend
-    { id: 'post-docker', title: 'Docker 없이 살 수 없는 이유', slug: 'docker-essential', content: '', excerpt: null, category_id: 'sub-backend', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
+    { id: 'post-docker', title: 'Docker 없이 살 수 없는 이유', slug: 'docker-essential', content: '', excerpt: null, category_id: 'sub-backend', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
 
     // IT / 개발 > DevOps
-    { id: 'post-cicd', title: 'CI/CD 파이프라인 자동화 여정', slug: 'cicd-automation', content: '', excerpt: null, category_id: 'sub-devops', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
+    { id: 'post-cicd', title: 'CI/CD 파이프라인 자동화 여정', slug: 'cicd-automation', content: '', excerpt: null, category_id: 'sub-devops', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
 
     // 아이디어 > 사고법
-    { id: 'post-think1', title: '생각을 소유하는 것과 떠내려가는 것', slug: 'owning-thoughts', content: '', excerpt: null, category_id: 'sub-thinking', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
-    { id: 'post-think2', title: '두 번째 뇌 구축 방법론', slug: 'second-brain', content: '', excerpt: null, category_id: 'sub-thinking', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
+    { id: 'post-think1', title: '생각을 소유하는 것과 떠내려가는 것', slug: 'owning-thoughts', content: '', excerpt: null, category_id: 'sub-thinking', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
+    { id: 'post-think2', title: '두 번째 뇌 구축 방법론', slug: 'second-brain', content: '', excerpt: null, category_id: 'sub-thinking', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
 
     // 아이디어 > 프로덕트
-    { id: 'post-mvp', title: 'MVP에서 배운 것들', slug: 'mvp-lessons', content: '', excerpt: null, category_id: 'sub-product', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
+    { id: 'post-mvp', title: 'MVP에서 배운 것들', slug: 'mvp-lessons', content: '', excerpt: null, category_id: 'sub-product', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
 
     // 주식 > 투자철학
-    { id: 'post-loss', title: '손실을 기록하는 것의 의미', slug: 'recording-losses', content: '', excerpt: null, category_id: 'sub-invest', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
+    { id: 'post-loss', title: '손실을 기록하는 것의 의미', slug: 'recording-losses', content: '', excerpt: null, category_id: 'sub-invest', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
 
     // 주식 > 종목리뷰
-    { id: 'post-etf', title: 'ETF 포트폴리오 1년 결산', slug: 'etf-portfolio-review', content: '', excerpt: null, category_id: 'sub-review', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
+    { id: 'post-etf', title: 'ETF 포트폴리오 1년 결산', slug: 'etf-portfolio-review', content: '', excerpt: null, category_id: 'sub-review', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
 
     // 생활 > 일상
-    { id: 'post-dawn', title: '새벽 4시의 고요함에 대하여', slug: 'dawn-silence', content: '', excerpt: null, category_id: 'sub-daily', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
+    { id: 'post-dawn', title: '새벽 4시의 고요함에 대하여', slug: 'dawn-silence', content: '', excerpt: null, category_id: 'sub-daily', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
 
     // 생활 > 건강
-    { id: 'post-run', title: '러닝 100일 후 달라진 것들', slug: 'running-100-days', content: '', excerpt: null, category_id: 'sub-health', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
+    { id: 'post-run', title: '러닝 100일 후 달라진 것들', slug: 'running-100-days', content: '', excerpt: null, category_id: 'sub-health', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
 
     // 관계 > 인간관계
-    { id: 'post-cold', title: '가까운 사람에게 더 차가워지는 이유', slug: 'cold-to-close-ones', content: '', excerpt: null, category_id: 'sub-human', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
-    { id: 'post-dist', title: '거리의 미학', slug: 'aesthetics-of-distance', content: '', excerpt: null, category_id: 'sub-human', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0 },
+    { id: 'post-cold', title: '가까운 사람에게 더 차가워지는 이유', slug: 'cold-to-close-ones', content: '', excerpt: null, category_id: 'sub-human', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
+    { id: 'post-dist', title: '거리의 미학', slug: 'aesthetics-of-distance', content: '', excerpt: null, category_id: 'sub-human', created_at: now, updated_at: now, published: true, author_id: null, view_count: 0, origin: 'admin' },
   ];
 
   return { categories, posts };
