@@ -48,7 +48,12 @@ export default function MediaPage() {
     if (!confirm('Are you sure you want to delete this file?')) return;
 
     try {
-      await fetch(`/api/media?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/media?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(body.error || 'Failed to delete file');
+        return;
+      }
       await fetchMedia();
     } catch (_error) {
       console.error('Failed to delete file:', _error);

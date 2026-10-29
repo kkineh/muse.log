@@ -4,8 +4,14 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import type { CreatePostRequest, UpdatePostRequest } from '@/types/database';
 import { generateChunkEmbeddings } from '@/lib/rag/embeddings';
+import { BRAIN_STORAGE_PREFIX } from '@/lib/constants';
 
 const STORAGE_MARKER = '/storage/v1/object/public/blog-images/';
+const BRAIN_MANAGED_ERROR = 'brain에서 관리하는 글입니다';
+// brain 출신 글에서 admin이 바꿀 수 있는 body 키
+const BRAIN_EDITABLE_KEYS = new Set(['id', 'category_id', 'tag_ids']);
+// DB 보호 트리거(006)가 내는 insufficient_privilege
+const GUARD_ERROR_CODE = '42501';
 
 function extractStoragePaths(content: string): string[] {
   const pattern = /!\[.*?\]\((https?:\/\/[^)]+)\)/g;
@@ -15,7 +21,10 @@ function extractStoragePaths(content: string): string[] {
       const idx = url.indexOf(STORAGE_MARKER);
       return idx !== -1 ? url.slice(idx + STORAGE_MARKER.length) : null;
     })
-    .filter((p): p is string => p !== null);
+    // brain 이미지는 여러 글이 공유하고 발행 스크립트가 관리하므로 지우지 않는다
+    .filter(
+      (p): p is string => p !== null && !p.startsWith(BRAIN_STORAGE_PREFIX)
+    );
 }
 
 // GET /api/posts - Get all posts (public: only published, admin: all)
@@ -64,7 +73,10 @@ export async function GET(request: Request) {
 
   return NextResponse.json(data, {
     headers: {
-      'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=86400',
+      // admin 응답에는 비공개 글이 섞이므로 엣지에 캐시하지 않는다
+      'Cache-Control': admin
+        ? 'private, no-store'
+        : 'public, s-maxage=86400, stale-while-revalidate=86400',
     },
   });
 }
@@ -96,6 +108,7 @@ export async function POST(request: Request) {
       category_id: body.category_id || null,
       published: body.published || false,
       author_id: user?.id || null,
+      origin: 'admin', // body의 origin은 무시한다
     })
     .select()
     .single();
@@ -143,9 +156,11 @@ export async function PATCH(request: Request) {
   }
 
   const supabase = await createClient();
-  const body: UpdatePostRequest = await request.json();
+  const body: UpdatePostRequest & { origin?: unknown } = await request.json();
 
   const { id, slug: _slug, tag_ids, ...updates } = body;
+  // origin은 어떤 행에서도 바꿀 수 없다
+  delete updates.origin;
 
   // 2. Validate required fields
   if (!id) {
@@ -160,16 +175,24 @@ export async function PATCH(request: Request) {
     );
   }
 
-  // 4. Fetch old content before update (for image diff)
-  let oldContent: string | null = null;
-  if (updates.content) {
-    const { data: oldPost } = await supabase
-      .from('posts')
-      .select('content')
-      .eq('id', id)
-      .single();
-    oldContent = oldPost?.content ?? null;
+  // 4. Fetch origin and old content before update (fail closed)
+  const { data: oldPost, error: fetchError } = await supabase
+    .from('posts')
+    .select('origin, content')
+    .eq('id', id)
+    .single();
+  if (fetchError || !oldPost) {
+    return NextResponse.json({ error: 'Post not found' }, { status: 404 });
   }
+
+  // 4-1. brain 출신 글은 카테고리·태그만 바꿀 수 있다
+  if (
+    oldPost.origin === 'brain' &&
+    Object.keys(body).some((key) => !BRAIN_EDITABLE_KEYS.has(key))
+  ) {
+    return NextResponse.json({ error: BRAIN_MANAGED_ERROR }, { status: 409 });
+  }
+  const oldContent: string | null = oldPost.content ?? null;
 
   // 5. Update post
   const { data, error } = await supabase
@@ -180,6 +203,9 @@ export async function PATCH(request: Request) {
     .single();
 
   if (error) {
+    if (error.code === GUARD_ERROR_CODE) {
+      return NextResponse.json({ error: BRAIN_MANAGED_ERROR }, { status: 409 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
@@ -261,10 +287,18 @@ export async function DELETE(request: Request) {
 
   const supabase = await createClient();
 
-  // 3. Fetch post content before deletion to extract image URLs
-  const { data: post } = await (id
-    ? supabase.from('posts').select('content').eq('id', id).single()
-    : supabase.from('posts').select('content').eq('slug', slug!).single());
+  // 3. Fetch origin and content before deletion (fail closed)
+  const { data: post, error: fetchError } = await (id
+    ? supabase.from('posts').select('origin, content').eq('id', id).single()
+    : supabase.from('posts').select('origin, content').eq('slug', slug!).single());
+  if (fetchError || !post) {
+    return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+  }
+
+  // 3-1. brain 출신 글은 지우지 않는다 (brain에서 publish: false로 내린다)
+  if (post.origin === 'brain') {
+    return NextResponse.json({ error: BRAIN_MANAGED_ERROR }, { status: 409 });
+  }
 
   // 4. Delete post
   const { error } = await (id
@@ -272,6 +306,9 @@ export async function DELETE(request: Request) {
     : supabase.from('posts').delete().eq('slug', slug!));
 
   if (error) {
+    if (error.code === GUARD_ERROR_CODE) {
+      return NextResponse.json({ error: BRAIN_MANAGED_ERROR }, { status: 409 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

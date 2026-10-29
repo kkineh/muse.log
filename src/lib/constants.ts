@@ -26,3 +26,8 @@ export const TOC_MAX_HEIGHT_VH = 70;
 export const CACHE_TTL = {
   CATEGORIES: 3600000, // 1 hour
 } as const;
+
+// Supabase Storage key prefix for images uploaded by the brain publish script.
+// Admin routes must never pass keys with this prefix to remove().
+// (scripts/lib/brain-core.mjs holds the same value; scripts cannot import TS)
+export const BRAIN_STORAGE_PREFIX = 'brain/';

@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase-server';
 import { tagColor, tagMix } from '@/lib/tag-color';
 
 export const revalidate = 86400;
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 interface PageProps {
   params: Promise<{ slug: string }>;

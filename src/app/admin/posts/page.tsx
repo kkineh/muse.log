@@ -179,7 +179,12 @@ export default function PostsPage() {
                     if (confirm(`Are you sure you want to delete "${post.title}"?`)) {
                       fetch(`/api/posts?slug=${post.slug}`, {
                         method: 'DELETE',
-                      }).then(() => {
+                      }).then(async (res) => {
+                        if (!res.ok) {
+                          const body = await res.json().catch(() => ({}));
+                          alert(body.error || 'Failed to delete post');
+                          return;
+                        }
                         window.location.reload();
                       });
                     }

@@ -1,6 +1,7 @@
 // API route for media upload and management
 import { createClient, isAdmin } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
+import { BRAIN_STORAGE_PREFIX } from '@/lib/constants';
 
 // GET /api/media - Get all media files (admin only)
 export async function GET() {
@@ -127,6 +128,14 @@ export async function DELETE(request: Request) {
   // Extract filepath from URL
   const url = new URL(media.url);
   const filepath = url.pathname.split('/blog-images/')[1];
+
+  // brain 이미지는 발행 스크립트가 관리한다. Storage도 행도 지우지 않는다
+  if (filepath?.startsWith(BRAIN_STORAGE_PREFIX)) {
+    return NextResponse.json(
+      { error: 'brain에서 관리하는 이미지입니다' },
+      { status: 409 }
+    );
+  }
 
   // Delete from storage
   if (filepath) {

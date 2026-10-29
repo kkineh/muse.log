@@ -31,26 +31,31 @@ export function EditPostForm({ post, categories }: EditPostFormProps) {
   );
   const [published, setPublished] = useState(post.published);
   const [loading, setLoading] = useState(false);
+  // brain 출신 글은 본문·제목·excerpt·공개를 brain에서만 고친다
+  const isBrain = post.origin === 'brain';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const finalContent = await (editorRef.current?.uploadPendingImages(content) ?? Promise.resolve(content));
+      const body = isBrain
+        ? { id: post.id, category_id: categoryId || null, tag_ids: tagIds }
+        : {
+            id: post.id,
+            title,
+            content: await (editorRef.current?.uploadPendingImages(content) ??
+              Promise.resolve(content)),
+            excerpt: excerpt || null,
+            category_id: categoryId || null,
+            published,
+            tag_ids: tagIds,
+          };
 
       const res = await fetch('/api/posts', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: post.id,
-          title,
-          content: finalContent,
-          excerpt: excerpt || null,
-          category_id: categoryId || null,
-          published,
-          tag_ids: tagIds,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
@@ -67,6 +72,11 @@ export function EditPostForm({ post, categories }: EditPostFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {isBrain && (
+        <p className="adm-hint">
+          brain에서 관리하는 글입니다. 본문과 공개 여부는 brain에서 고치세요.
+        </p>
+      )}
       <div className="adm-panel adm-section space-y-4">
         {/* Title */}
         <div className="adm-field">
@@ -76,7 +86,8 @@ export function EditPostForm({ post, categories }: EditPostFormProps) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="adm-input"
+            disabled={isBrain}
+            className={`adm-input${isBrain ? ' cursor-not-allowed opacity-60' : ''}`}
           />
         </div>
 
@@ -145,7 +156,8 @@ export function EditPostForm({ post, categories }: EditPostFormProps) {
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}
             rows={3}
-            className="adm-input"
+            disabled={isBrain}
+            className={`adm-input${isBrain ? ' cursor-not-allowed opacity-60' : ''}`}
           />
         </div>
       </div>
@@ -159,6 +171,7 @@ export function EditPostForm({ post, categories }: EditPostFormProps) {
             value={content}
             onChange={setContent}
             height={500}
+            preview={isBrain ? 'preview' : undefined}
           />
         </div>
       </div>
@@ -171,7 +184,8 @@ export function EditPostForm({ post, categories }: EditPostFormProps) {
             id="published"
             checked={published}
             onChange={(e) => setPublished(e.target.checked)}
-            className="h-5 w-5 accent-[var(--t-accent)]"
+            disabled={isBrain}
+            className={`h-5 w-5 accent-[var(--t-accent)]${isBrain ? ' cursor-not-allowed opacity-60' : ''}`}
           />
           <label
             htmlFor="published"

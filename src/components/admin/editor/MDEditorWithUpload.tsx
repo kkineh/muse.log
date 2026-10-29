@@ -30,13 +30,15 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   height?: number;
+  /** 'preview'면 읽기 전용 미리보기 (brain 출신 글) */
+  preview?: 'live' | 'edit' | 'preview';
 }
 
 // blobUrl → File 매핑
 type PendingImage = { blobUrl: string; file: File; altText: string };
 
 const MDEditorWithUpload = forwardRef<MDEditorWithUploadRef, Props>(
-  ({ value, onChange, height = 500 }, ref) => {
+  ({ value, onChange, height = 500, preview }, ref) => {
     const [dragOver, setDragOver] = useState(false);
     const editorRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -215,6 +217,7 @@ const MDEditorWithUpload = forwardRef<MDEditorWithUploadRef, Props>(
             value={value}
             onChange={(val) => onChange(val || '')}
             height={height}
+            preview={preview}
             previewOptions={{ components: previewComponents }}
           />
         </div>
