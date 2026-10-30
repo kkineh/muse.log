@@ -39,6 +39,7 @@ interface D3Link {
   target: string;
   depth: number;
   isTagLink?: boolean;
+  isPostLink?: boolean;
 }
 
 /**
@@ -85,8 +86,8 @@ export function useD3ForceSimulation(
         d3
           .forceLink<NeuralNode, D3Link>(clonedLinks)
           .id((d) => d.id)
-          .distance((d) => d.isTagLink ? 200 : (d.depth === 1 ? 120 : d.depth === 2 ? 100 : 80))
-          .strength((d) => d.isTagLink ? 0.1 : 0.6)
+          .distance((d) => d.isTagLink || d.isPostLink ? 200 : (d.depth === 1 ? 120 : d.depth === 2 ? 100 : 80))
+          .strength((d) => d.isTagLink || d.isPostLink ? 0.1 : 0.6)
       )
       .force(
         'charge',

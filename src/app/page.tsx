@@ -6,7 +6,7 @@ import { isAdmin } from '@/lib/supabase-server';
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [{ graph, tagPostLinks }, admin] = await Promise.all([
+  const [{ graph, tagPostLinks, postLinks }, admin] = await Promise.all([
     getNeuralGraphProps(),
     isAdmin(),
   ]);
@@ -15,6 +15,7 @@ export default async function Home() {
     <NeuralHomePage
       initialGraph={graph}
       tagPostLinks={tagPostLinks}
+      postLinks={postLinks}
       isAdmin={admin}
     />
   );

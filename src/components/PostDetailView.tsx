@@ -47,6 +47,7 @@ interface PostDetailViewProps {
   isAdmin?: boolean;
   graph?: NeuralGraphData;
   tagPostLinks?: { source: string; target: string; sharedCount: number }[];
+  postLinks?: { source: string; target: string }[];
 }
 
 export default function PostDetailView({
@@ -58,6 +59,7 @@ export default function PostDetailView({
   isAdmin = false,
   graph,
   tagPostLinks,
+  postLinks,
 }: PostDetailViewProps) {
   const router = useRouter();
   const visibleTags = (post.tags ?? []).filter((tag) => !isSeriesTag(tag.name));
@@ -349,7 +351,7 @@ export default function PostDetailView({
         <NeuralFooter />
       </motion.div>
 
-      {graph && <NeuralMiniMap key={post.slug} graph={graph} tagPostLinks={tagPostLinks} currentSlug={post.slug} />}
+      {graph && <NeuralMiniMap key={post.slug} graph={graph} tagPostLinks={tagPostLinks} postLinks={postLinks} currentSlug={post.slug} />}
 
       {/* Table of Contents (right side) */}
       <TableOfContents

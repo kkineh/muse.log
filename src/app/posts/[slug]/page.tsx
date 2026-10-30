@@ -154,7 +154,7 @@ export default async function PostPage({ params }: PageProps) {
     categoryBreadcrumb = chain;
   }
 
-  const { graph, tagPostLinks } = await getNeuralGraphProps();
+  const { graph, tagPostLinks, postLinks } = await getNeuralGraphProps();
 
   return (
     <PostDetailView
@@ -172,6 +172,7 @@ export default async function PostPage({ params }: PageProps) {
       isAdmin={admin}
       graph={graph}
       tagPostLinks={tagPostLinks}
+      postLinks={postLinks}
     />
   );
 }

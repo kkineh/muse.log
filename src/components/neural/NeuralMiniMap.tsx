@@ -12,6 +12,7 @@ import type { NeuralGraphData, NeuralNode } from '@/lib/neural-graph-builder';
 interface NeuralMiniMapProps {
   graph: NeuralGraphData;
   tagPostLinks?: { source: string; target: string; sharedCount: number }[];
+  postLinks?: { source: string; target: string }[];
   currentSlug: string;
 }
 
@@ -29,7 +30,7 @@ function clampSize(w: number, h: number) {
   };
 }
 
-export function NeuralMiniMap({ graph, tagPostLinks, currentSlug }: NeuralMiniMapProps) {
+export function NeuralMiniMap({ graph, tagPostLinks, postLinks, currentSlug }: NeuralMiniMapProps) {
   const router = useRouter();
   const palette = NEURAL_PALETTES[useNeuralPalette()];
   const [collapsed, setCollapsed] = useMinimapCollapsed();
@@ -116,6 +117,7 @@ export function NeuralMiniMap({ graph, tagPostLinks, currentSlug }: NeuralMiniMa
         onNodeClick={handleNodeClick}
         onBackgroundClick={handleBackgroundClick}
         tagPostLinks={tagPostLinks}
+        postLinks={postLinks}
         navigatingPostId={navigatingPostId}
         currentPostId={currentNodeId}
         palette={palette}

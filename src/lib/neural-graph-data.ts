@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-server';
 import type { Category, CategoryWithChildren, Post } from '@/types/database';
+import { mergePostLinks, type PostLink, type TagPostLink } from '@/lib/merge-post-links';
 import { buildNeuralGraph, type NeuralGraphData } from '@/lib/neural-graph-builder';
 
 // Helper function to build category tree
@@ -94,7 +95,8 @@ function getMockData(): { categories: Category[]; posts: Post[] } {
 
 export async function getNeuralGraphProps(): Promise<{
   graph: NeuralGraphData;
-  tagPostLinks: { source: string; target: string; sharedCount: number }[];
+  tagPostLinks: TagPostLink[];
+  postLinks: PostLink[];
 }> {
   let categories: Category[] = [];
   let posts: Post[] = [];
@@ -132,12 +134,15 @@ export async function getNeuralGraphProps(): Promise<{
   }
 
   // Compute tag-based post-to-post links
-  let tagPostLinks: { source: string; target: string; sharedCount: number }[] = [];
+  let tagPostLinks: TagPostLink[] = [];
+  let rawPostLinks: { source_post_id: string; target_post_id: string }[] = [];
   try {
     const supabase = await createClient();
-    const { data: postTags } = await supabase
-      .from('post_tags')
-      .select('post_id, tag_id');
+    const [{ data: postTags }, { data: postLinksData }] = await Promise.all([
+      supabase.from('post_tags').select('post_id, tag_id'),
+      supabase.from('post_links').select('source_post_id, target_post_id'),
+    ]);
+    rawPostLinks = postLinksData || [];
 
     if (postTags && postTags.length > 0) {
       // Only include published post IDs
@@ -179,11 +184,13 @@ export async function getNeuralGraphProps(): Promise<{
       });
     }
   } catch (error) {
-    console.error('Failed to fetch post_tags for tag links:', error);
+    console.error('Failed to fetch post_tags/post_links for graph links:', error);
   }
 
   const categoryTree = buildCategoryTree(categories);
   const neuralGraph = buildNeuralGraph(categoryTree, posts);
 
-  return { graph: neuralGraph, tagPostLinks };
+  const merged = mergePostLinks(tagPostLinks, rawPostLinks);
+
+  return { graph: neuralGraph, tagPostLinks: merged.tagPostLinks, postLinks: merged.postLinks };
 }

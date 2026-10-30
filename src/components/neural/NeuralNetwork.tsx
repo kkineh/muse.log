@@ -17,6 +17,7 @@ interface NeuralNetworkProps {
   onNodeClick: (node: NeuralNode) => void;
   onBackgroundClick: () => void;
   tagPostLinks?: { source: string; target: string; sharedCount: number }[];
+  postLinks?: { source: string; target: string }[];
   navigatingPostId?: string | null;
   palette: NeuralPalette;
   variant?: 'full' | 'mini';
@@ -35,6 +36,7 @@ export function NeuralNetwork({
   onNodeClick,
   onBackgroundClick,
   tagPostLinks,
+  postLinks,
   navigatingPostId,
   palette,
   variant = 'full',
@@ -43,7 +45,7 @@ export function NeuralNetwork({
   const { initialNodes, links } = useMemo(() => {
     const flatNodes = flattenNeuralGraph(data);
 
-    const linkList: { source: string; target: string; depth: number; isTagLink?: boolean; sharedCount?: number }[] = [];
+    const linkList: { source: string; target: string; depth: number; isTagLink?: boolean; isPostLink?: boolean; sharedCount?: number }[] = [];
 
     const buildLinks = (node: NeuralNode) => {
       if (node.children) {
@@ -77,8 +79,23 @@ export function NeuralNetwork({
       }
     }
 
+    // Add explicit post-to-post links (from brain wikilinks)
+    if (postLinks) {
+      const nodeIds = new Set(flatNodes.map(n => n.id));
+      for (const pl of postLinks) {
+        if (nodeIds.has(pl.source) && nodeIds.has(pl.target)) {
+          linkList.push({
+            source: pl.source,
+            target: pl.target,
+            depth: 3,
+            isPostLink: true,
+          });
+        }
+      }
+    }
+
     return { initialNodes: flatNodes, links: linkList };
-  }, [data, tagPostLinks]);
+  }, [data, tagPostLinks, postLinks]);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
@@ -165,7 +182,7 @@ export function NeuralNetwork({
     };
     const addAncestors = (nodeId: string) => {
       links.forEach((l) => {
-        if (!l.isTagLink && l.target === nodeId && !set.has(l.source)) {
+        if (!l.isTagLink && !l.isPostLink && l.target === nodeId && !set.has(l.source)) {
           set.add(l.source);
           addAncestors(l.source);
         }
@@ -183,7 +200,7 @@ export function NeuralNetwork({
     set.add(navigatingPostId);
     const addAncestors = (nodeId: string) => {
       links.forEach((l) => {
-        if (!l.isTagLink && l.target === nodeId && !set.has(l.source)) {
+        if (!l.isTagLink && !l.isPostLink && l.target === nodeId && !set.has(l.source)) {
           set.add(l.source);
           addAncestors(l.source);
         }
@@ -294,13 +311,18 @@ export function NeuralNetwork({
             const active = isLinkActive(link.source, link.target);
             const dimmed = isLinkDimmed(link.source, link.target);
             const isTagLink = !!link.isTagLink;
+            const isPostLink = !!link.isPostLink;
 
             let edgeStroke: string;
             let edgeWidth: number;
             let glowFilter: string | undefined;
 
             const sharedCount = link.sharedCount || 1;
-            if (isTagLink) {
+            if (isPostLink) {
+              edgeStroke = '#ffffff';
+              edgeWidth = 1.0;
+              glowFilter = dimmed ? undefined : 'url(#tag-link-glow-2)';
+            } else if (isTagLink) {
               edgeStroke = '#ffffff';
               edgeWidth = 0.7;
               glowFilter = dimmed ? undefined
@@ -314,15 +336,15 @@ export function NeuralNetwork({
 
             return (
               <line
-                key={`${link.source}-${link.target}${isTagLink ? '-tag' : ''}`}
+                key={`${link.source}-${link.target}${isPostLink ? '-link' : isTagLink ? '-tag' : ''}`}
                 x1={src.x || 0}
                 y1={src.y || 0}
                 x2={tgt.x || 0}
                 y2={tgt.y || 0}
                 stroke={edgeStroke}
                 strokeWidth={edgeWidth}
-                strokeDasharray="3 3"
-                opacity={dimmed ? 0.05 : active ? 0.7 : isTagLink ? Math.min(0.8, 0.08 + sharedCount * 0.3) : 0.25}
+                strokeDasharray={isPostLink ? undefined : isTagLink ? '4 4' : '3 3'}
+                opacity={dimmed ? 0.05 : active ? 0.7 : isPostLink ? 0.5 : isTagLink ? 0.2 + 0.1 * Math.min(sharedCount, 4) : 0.25}
                 filter={glowFilter}
                 className="transition-opacity duration-300"
               />

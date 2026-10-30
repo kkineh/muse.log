@@ -28,10 +28,11 @@ const ICON_LINK_CLASS =
 interface NeuralHomePageProps {
   initialGraph: NeuralGraphData;
   tagPostLinks?: { source: string; target: string; sharedCount: number }[];
+  postLinks?: { source: string; target: string }[];
   isAdmin?: boolean;
 }
 
-export function NeuralHomePage({ initialGraph, tagPostLinks, isAdmin }: NeuralHomePageProps) {
+export function NeuralHomePage({ initialGraph, tagPostLinks, postLinks, isAdmin }: NeuralHomePageProps) {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [highlightedPosts, setHighlightedPosts] = useState<string[]>([]);
@@ -82,6 +83,7 @@ export function NeuralHomePage({ initialGraph, tagPostLinks, isAdmin }: NeuralHo
         onNodeClick={handleNodeClick}
         onBackgroundClick={handleBackgroundClick}
         tagPostLinks={tagPostLinks}
+        postLinks={postLinks}
         navigatingPostId={navigatingPostId}
         palette={palette}
       />
