@@ -16,6 +16,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `BRAIN_STORAGE_PREFIX` (`brain/`) in `src/lib/constants.ts`; `yaml` dev dependency
   - Script tests under `scripts/lib/*.test.mjs` (`node --test`)
 
+- **Explicit post links in neural graph (roadmap ③)**
+  - `post_links` (from brain `related:` and body links) fetched in the same `Promise.all` as `post_tags` in `getNeuralGraphProps()`
+  - `src/lib/merge-post-links.ts`: pure helper `mergePostLinks()` dedupes links as undirected pairs, drops self-links, and removes tag edges for linked pairs so each pair draws one edge
+  - Linked pairs: solid line, opacity 0.5, medium glow (`tag-link-glow-2`); tag edge hidden
+  - Tag-only pairs: dashed `4 4`, opacity `0.2 + 0.1 * min(sharedCount, 4)`, glow by shared count
+  - Signal and fiber propagation travels along link edges like tree edges (tag edges are still skipped)
+  - Link edges use the same weak force as tag edges (`forceLink` distance 200, strength 0.1)
+  - Tests: `src/lib/merge-post-links.test.mjs` (`node --test`, Node >= 22.18)
+
 - **D3.js Force Simulation Integration**
   - Implemented physics-based node positioning using D3.js force simulation
   - Components and Hooks:
