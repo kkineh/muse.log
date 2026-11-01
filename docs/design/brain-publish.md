@@ -279,12 +279,12 @@ DB select ────────┘         │(통과, --apply)
 
 **파일이 사라졌을 때**: `post_sources`에는 있는데 디스크에 없는 경로를 찾는다. 같은 slug를 다른 파일이 갖고 있으면 이름이 바뀐 것으로 보고 `source_path`만 갱신한다. 그렇지 않으면 `published=false`로 내리고 보고한다. 행은 지우지 않는다(조회수 보존).
 
-**보고**: 파일별 상태(insert / update / unchanged / unpublish / orphan-unpublish / blocked), 쓰기 건수, 업로드한 이미지 수, 재검증 결과를 찍는다. RAG 재색인 안내는 대상 N(새로 공개됐거나 title·content·excerpt가 바뀐 글)이 1 이상일 때만 찍는다(§9).
+**보고**: 파일별 상태(insert / update / unchanged / unpublish / orphan-unpublish / blocked), 쓰기 건수, 업로드한 이미지 수, 재검증 결과를 찍는다. RAG 재색인 안내는 ④(brain-chat)로 제거됨.
 
 ## 5. 캐시 전략
 
 - L1 (Browser): 변경 없음. 업로드 이미지는 내용 주소 경로라 오래 캐시해도 안전하다.
-- L2 (Edge): ISR 페이지와 `s-maxage=86400` API는 발행 때 `/api/revalidate`로 무효화한다. 재검증 호출이 실패해도 데이터는 이미 들어가 있고, 최대 24시간 뒤에는 반영된다. 이 경우 보고에 경고와 재시도 명령(`--revalidate-only`)을 찍는다. admin GET `/api/posts`는 `private, no-store`.
+- L2 (Edge): ISR 페이지와 `s-maxage=86400` API는 발행 때 `/api/revalidate`로 무효화한다. 재검증 호출이 실패해도 데이터는 이미 들어가 있고, 최대 24시간 뒤에는 반영된다. 이 경우 ④(brain-chat)부터 안내와 재시도 명령(`--revalidate-only`)을 찍고 exit 1로 끝난다. admin GET `/api/posts`는 `private, no-store`.
 - L3 (App): 없음. `blog_index` 뷰를 읽을 때의 캐시는 ④ 설계에서 정한다(발행 때만 바뀌므로 발행 재검증으로 무효화하면 된다).
 
 ## 6. 파일 구조
@@ -356,6 +356,8 @@ dry-run(기본)은 만들 파일 목록과 frontmatter만 보여 준다. 이관 
 - 이 PATCH는 content/title을 보내지 않으므로 재임베딩도 일어나지 않는다.
 
 ## 9. ④ 전까지 RAG와의 관계
+
+> ④(brain-chat)로 RAG 코드와 재색인 안내는 제거됐다. 아래는 이력이다.
 
 - 지금 색인은 `/api/posts`의 POST/PATCH와 `/api/embeddings/bulk`에서만 일어난다. 스크립트는 DB에 바로 쓰므로 이 훅을 지나지 않는다.
 - 그 결과:

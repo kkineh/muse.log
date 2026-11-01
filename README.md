@@ -220,14 +220,14 @@ Post and category pages use a responsive 3-column layout:
 - **Category tree**: Client-side cache (1 hour in localStorage)
 - **Images**: Immutable cache (1 year)
 
-### RAG (Retrieval-Augmented Generation)
+### Blog chat
 
-1. Posts are embedded using `text-embedding-3-small` on create/update
-2. User questions are embedded
-3. pgvector searches for similar posts (top 3)
-4. GPT-4o-mini generates answers using post content as context
+1. A router call reads a text index of public posts (`blog_index`) plus recently read slugs and the last turns, and picks up to 3 slugs
+2. The server keeps only slugs in the index and reads those posts in full
+3. An answer call (default `gpt-4o-mini`, `CHAT_MODEL`) answers from those posts; `sources` lists the posts actually read
+4. First-turn answers are cached 24h (tag `blog-chat`, purged on publish and post writes); `CHAT_DISABLED=1` turns the chat off
 
-**Cost**: ~$0.0007 per chat conversation (very affordable!)
+**Cost**: about $0.002 per question (two LLM calls), capped by a prepaid OpenAI balance
 
 ### Cost Optimization
 
@@ -372,7 +372,7 @@ node scripts/brain-publish.mjs --revalidate-only                    # retry reva
 node scripts/brain-export.mjs --brain D:/workspace/brain [--apply]
 ```
 
-Exit codes: `0` success, `1` validation violation / export verification diff / runtime error (nothing is written on a violation), `2` usage error or missing env key. Writes are idempotent, so re-run after fixing the cause. If the script reports posts to reindex, regenerate embeddings in `/admin/rag`.
+Exit codes: `0` success, `1` validation violation / export verification diff / runtime error (nothing is written on a violation), `2` usage error or missing env key. Writes are idempotent, so re-run after fixing the cause.
 
 Brain-origin posts are body-locked in admin: only category and tags can be edited there.
 

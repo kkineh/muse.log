@@ -62,7 +62,7 @@ node --check scripts/brain-publish.mjs && node --check scripts/brain-export.mjs
 | `lib/brain-env.mjs` | 두 env 파일 파싱, 키 검사, service role 클라이언트 생성 | 값 출력, publishable key로 대체 |
 | `brain-publish.mjs`, `brain-export.mjs` | 인자 파싱, vault 읽기, DB select/쓰기, Storage, `fetch`, 출력 | 링크·스킴 판정 로직(전부 core에 둠) |
 
-- `plan(files, dbState)`의 입력: `files`는 `{ path, text, mtime? }[]`(vault 상대 posix 경로), 이미지 해석에 필요한 vault 파일 목록과 이미지 바이트는 CLI가 미리 읽어 넘긴다. 출력: `{ blocked: Violation[], actions: Action[], uploads: Upload[], reindexCount }`. 쓰기 단계는 `actions`만 보고 실행한다.
+- `plan(files, dbState)`의 입력: `files`는 `{ path, text, mtime? }[]`(vault 상대 posix 경로), 이미지 해석에 필요한 vault 파일 목록과 이미지 바이트는 CLI가 미리 읽어 넘긴다. 출력: `{ blocked: Violation[], actions: Action[], uploads: Upload[] }`. 쓰기 단계는 `actions`만 보고 실행한다.
 - `Violation`은 `{ file, line, reason, excerpt }`. `line`은 **파일 기준 줄 번호**(frontmatter 줄 수를 더한 값)다. 본문 기준으로 찍으면 Obsidian에서 바로 못 찾는다.
 - 경로 키(`source_path`, vault 색인)는 항상 vault 상대 **posix** 경로, 파일명은 **NFC**로 정규화한다. Windows `\`가 DB에 들어가면 다른 PC에서 고아로 잡힌다.
 

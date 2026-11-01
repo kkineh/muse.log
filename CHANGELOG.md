@@ -25,6 +25,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Link edges use the same weak force as tag edges (`forceLink` distance 200, strength 0.1)
   - Tests: `src/lib/merge-post-links.test.mjs` (`node --test`, Node >= 22.18)
 
+- **Blog chat rewritten: index routing + conversation history (roadmap ④)** - see `docs/design/brain-chat.md`
+  - `POST /api/chat` replaces the pgvector RAG flow. A router call (`CHAT_MODEL`, default `gpt-4o-mini`) picks up to 3 slugs from the public post index (`blog_index`, cached). The server keeps only slugs present in the index and reads those posts in full (up to 6000 chars each). An answer call answers from them
+  - Follow-up turns: the client sends `history` (last 6 items, 1000 chars each) and `readSlugs` (first 6 valid slugs). Both go to the router and the answer call. If the router picks nothing on a follow-up question of 40 chars or less, the most recently read post is used
+  - `sources` lists only the posts actually read. When no post is read, the response is a fixed message with `sources: []`
+  - First-turn answers (no `history`, no `readSlugs`) are cached 24h in the Vercel Data Cache (tag `blog-chat`). An answer is cached only when the router output parsed, every picked post was read, and the answer finished with `stop`
+  - Cache invalidation: `revalidateBlogChat()` (`src/lib/cache-tags.ts`, `revalidateTag('blog-chat', { expire: 0 })`) runs on `POST /api/revalidate` and on `POST`, `PATCH`, `DELETE /api/posts`. The index and post text share the same tag. A failed invalidation is logged and does not fail the write
+  - `CHAT_DISABLED=1` kill switch: 503 with a fixed message, no DB or OpenAI calls. Evaluated per request
+  - Input limits: body 32KB (413), `Content-Type: application/json` (415), message 1-500 chars after trim (400), invalid `readSlugs` entry (400), IP limit 8 requests/minute (429 with `Retry-After`, per serverless instance)
+  - Status codes: 503 when disabled, when `OPENAI_API_KEY` is missing, or when OpenAI returns 402 or 429 (quota or rate limit). 500 for other failures, including the 25s request deadline. All responses use `Cache-Control: no-store`
+  - Env: `CHAT_MODEL` (default `gpt-4o-mini`), `CHAT_DISABLED` (`1` to turn chat off). Both are documented in `.env.local.example`
+  - Tests: `src/lib/chat/*.test.mjs`
+
 - **D3.js Force Simulation Integration**
   - Implemented physics-based node positioning using D3.js force simulation
   - Components and Hooks:
@@ -113,6 +125,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Cache duration constants for categories and posts
 
 ### Changed
+- **Blog chat data path**: the chat no longer uses embeddings, chunks, or pgvector search. The client (`src/hooks/useChat.ts`) sends `history` and `readSlugs` and uses returned `sources` to highlight graph nodes
+- **Brain publish exit code**: `scripts/brain-publish.mjs` exits 1 when revalidation fails after data was written. The data is kept; retry with `--revalidate-only`
 - **Brain-origin posts are locked in admin**
   - `PATCH /api/posts` on an `origin: 'brain'` post accepts only `category_id` and `tag_ids`; anything else returns 409. `DELETE` returns 409 (unpublish with `publish: false` in brain)
   - `origin` cannot be set or changed through the API; new admin posts are always `origin: 'admin'`
@@ -139,7 +153,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Post page layout**: Refactored to 3-column responsive design
 - **Category page layout**: Refactored to 3-column responsive design with `CategoryInfo` sidebar
 
+### Removed
+- **RAG code and admin page**: `src/lib/rag/chunker.ts`, `src/lib/rag/embeddings.ts`, `src/app/api/embeddings/bulk/route.ts`, `src/app/admin/rag/page.tsx`, `scripts/evaluate-rag.mjs`
+- **Breaking**: migration `supabase/migrations/007_drop_rag.sql` drops `search_posts`, `search_chunks`, `post_embeddings`, `post_chunks`. The repo does not apply it. Run it manually in the Supabase SQL editor only after this deployment is live. After it is applied, do not roll back to a pre-④ deployment
+
 ### Fixed
+- **Blog chat cache on delete**: `DELETE /api/posts` did not invalidate any cache, so a deleted post could stay in chat answers for up to 24h. It now invalidates `blog-chat`
 - **Admin delete errors**: post and media delete in admin now show the API error instead of silently succeeding
 - **Hydration error**: Fixed SSR mismatch in NeuralNetwork component
   - Removed dynamic `window.innerWidth` usage during SSR
