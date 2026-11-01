@@ -38,13 +38,6 @@ export interface Media {
   created_at: string;
 }
 
-export interface PostEmbedding {
-  id: string;
-  post_id: string;
-  embedding: number[]; // Vector(1536)
-  created_at: string;
-}
-
 export interface Tag {
   id: string;
   name: string;
@@ -175,14 +168,6 @@ export interface ChatResponse {
   }[];
 }
 
-export interface SearchPostsResult {
-  id: string;
-  title: string;
-  content: string;
-  slug: string;
-  similarity: number;
-}
-
 // Dashboard stats
 export interface DashboardStats {
   total_posts: number;
@@ -200,11 +185,4 @@ export interface DashboardData extends DashboardStats {
   category_distribution: { name: string; count: number }[];
   popular_tags: { name: string; color: string; post_count: number }[];
   popular_posts: { title: string; slug: string; view_count: number }[];
-}
-
-// RAG settings
-export interface RAGSettings {
-  match_threshold: number; // 0.0 - 1.0
-  match_count: number; // 1 - 10
-  max_tokens: number;
 }

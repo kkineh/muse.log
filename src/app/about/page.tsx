@@ -27,7 +27,7 @@ export default function AboutPage() {
   const skills = [
     { category: 'Frontend', items: ['TypeScript', 'React', 'Next.js', 'Tailwind CSS'] },
     { category: 'Backend', items: ['Node.js', 'PostgreSQL', 'Supabase'] },
-    { category: 'AI / Infra', items: ['OpenAI API', 'pgvector', 'Vercel'] },
+    { category: 'AI / Infra', items: ['OpenAI API', 'Vercel'] },
   ];
 
   const interests = [

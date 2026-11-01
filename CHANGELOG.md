@@ -187,8 +187,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Tech Stack**:
 - Next.js 16 (App Router with Turbopack)
-- Supabase (PostgreSQL + pgvector)
-- OpenAI API (Embedding + Completion)
+- Supabase (PostgreSQL)
+- OpenAI API (Completion)
 - TypeScript
 - Framer Motion (animations)
 - Radix UI (components)
@@ -202,6 +202,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Architecture**:
 - 3-level category hierarchy
-- RAG-powered chatbot
+- Blog chat (index routing over the public post index)
 - RLS-protected database
 - Multi-agent development system (CLAUDE.md)

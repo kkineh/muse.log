@@ -1,8 +1,8 @@
-# muse.log - RAG-Powered Blog with Admin Panel
+# muse.log - Blog with Chat and Admin Panel
 
 A modern, cost-optimized blog platform built with Next.js, featuring:
 - 3-level category hierarchy
-- RAG-powered chatbot using OpenAI
+- Blog chat that answers from the posts themselves (OpenAI)
 - Full-featured admin panel
 - "Deep Sea" themed UI
 - Zero-cost convergence architecture
@@ -16,7 +16,7 @@ A modern, cost-optimized blog platform built with Next.js, featuring:
 - ✅ Table of Contents with scroll spy navigation
 - ✅ Breadcrumb navigation (clickable hierarchy)
 - ✅ 3-column responsive layout
-- ✅ RAG chatbot for Q&A about blog content
+- ✅ Chat for Q&A about blog content (picks up to 3 posts from the post index and reads them in full)
 - ✅ Dark/Light mode support
 - ✅ Responsive "Deep Sea" theme
 
@@ -25,19 +25,17 @@ A modern, cost-optimized blog platform built with Next.js, featuring:
 - ✅ Post management (create, read, edit, delete)
   - ✅ Create: `/admin/posts/new`
   - ✅ Edit: `/admin/posts/[slug]/edit` (slug-based URL)
-  - ✅ Auto-regenerate embeddings on content change
   - ✅ Slug immutability (cannot be changed after creation)
 - ✅ Markdown editor (react-md-editor)
 - ✅ Category management (3-level hierarchy)
 - ✅ Media library (image upload to Supabase Storage)
-- ✅ RAG settings configuration
 - ✅ Protected routes with middleware
 
 ## 🏗️ Tech Stack
 
 - **Framework**: Next.js 14 (App Router)
-- **Database**: Supabase (PostgreSQL + pgvector)
-- **AI**: OpenAI (text-embedding-3-small + gpt-4o-mini)
+- **Database**: Supabase (PostgreSQL)
+- **AI**: OpenAI (gpt-4o-mini)
 - **Deployment**: Vercel (Serverless)
 - **Storage**: Supabase Storage
 - **Auth**: Supabase Auth
@@ -60,13 +58,12 @@ muse-log/
 │   │   │   │       └── delete/ # Delete post
 │   │   │   ├── categories/     # Category management
 │   │   │   ├── media/          # Media library
-│   │   │   ├── rag/            # RAG settings
 │   │   │   └── settings/       # Blog settings
 │   │   ├── api/                # API routes
-│   │   │   ├── posts/          # Posts CRUD + embedding
+│   │   │   ├── posts/          # Posts CRUD
 │   │   │   ├── categories/     # Categories CRUD
 │   │   │   ├── media/          # Media upload/delete
-│   │   │   ├── chat/           # RAG chatbot
+│   │   │   ├── chat/           # Blog chat (index routing)
 │   │   │   └── admin/stats/    # Dashboard stats
 │   │   ├── category/[slug]/    # Category filter pages
 │   │   ├── posts/[slug]/       # Individual post pages
@@ -88,6 +85,7 @@ muse-log/
 │   │   ├── useLocalStorage.ts  # SSR-safe localStorage hook
 │   │   └── useScrollSpy.ts     # Scroll spy for TOC
 │   ├── lib/
+│   │   ├── chat/               # Blog chat (router, answer, cache)
 │   │   ├── constants.ts        # Cache durations, storage keys
 │   │   ├── supabase.ts         # Client-side Supabase
 │   │   ├── supabase-server.ts  # Server-side Supabase
@@ -175,7 +173,7 @@ Visit:
 ### Database Schema
 
 See `description.md` for detailed explanation of:
-- Posts, Categories, Media, Post Embeddings tables
+- Posts, Categories, Media tables
 - 3-level category hierarchy
 - RLS (Row Level Security) policies
 
@@ -315,7 +313,6 @@ Manage via Admin Panel → Categories.
 2. Write title, content (Markdown), excerpt
 3. Select category
 4. Check "Publish immediately" or save as draft
-5. Embedding is auto-generated for published posts
 
 ### Editing Posts
 
@@ -324,9 +321,7 @@ Manage via Admin Panel → Categories.
 3. Update title, content, category, or excerpt
 4. Note: Slug cannot be changed (to preserve URL integrity)
 5. Save changes
-6. If content/title changed and post is published:
-   - Embedding is automatically regenerated
-   - Changes reflect in RAG chatbot within minutes
+6. Saving purges the chat cache, so the chat reads the updated post
 7. Brain-origin posts (`origin: 'brain'`): only category and tags can be changed in admin; title, content, excerpt, published and delete are locked (API returns 409). Edit them in the brain vault
 
 ### Deleting Posts
@@ -334,7 +329,7 @@ Manage via Admin Panel → Categories.
 1. Go to `/admin/posts`
 2. Click delete button on a post
 3. Confirms deletion
-4. Post embeddings automatically deleted (CASCADE)
+4. Saving purges the chat cache, so the chat no longer cites the deleted post
 
 ### Managing Categories
 

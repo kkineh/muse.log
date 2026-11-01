@@ -73,7 +73,7 @@ lim(cost) → 0 as traffic → moderate
 1. **정적 우선**: 빌드타임 생성 > 런타임 연산
 2. **캐시 필수**: LLM 응답, DB 쿼리 모두 캐시 전략
 3. **무료 플랜**: Vercel, Supabase, OpenAI API 무료 범위만
-4. **토큰 최소화**: RAG 컨텍스트 3~5개 문서로 제한
+4. **토큰 최소화**: 답변당 글 전문은 최대 3편, 대화는 최근 턴만
 
 ### 무료 플랜 한도 (절대 초과 금지)
 
@@ -87,13 +87,13 @@ lim(cost) → 0 as traffic → moderate
 
 ### 시스템 목적
 - Next.js 기반 3레벨 카테고리 블로그
-- RAG 기반 질의응답 챗봇 통합
+- index 라우팅 기반 질의응답 채팅 통합
 - 무료 인프라 범위 내 완전 자동화 파이프라인
 
 ### 기술 스택 (변경 불가)
 - Frontend: Next.js (App Router)
-- Database: Supabase (PostgreSQL + pgvector)
-- AI: OpenAI API (Embedding + Completion)
+- Database: Supabase (PostgreSQL)
+- AI: OpenAI API (Completion)
 - Deployment: Vercel (Serverless)
 - Storage: Supabase Storage
 
@@ -228,5 +228,6 @@ lim(cost) → 0 as traffic → moderate
 
 ## 변경 이력
 
+- v1.2 (2026-11-01): 채팅을 RAG에서 index 라우팅으로 바꾼 것을 반영
 - v1.1 (2026-03-08): Claude Code 자동 호출 최적화 (agent 위임 규칙 추가, 명령형 전환)
 - v1.0 (2026-02-27): 초기 헌법 작성
