@@ -558,6 +558,30 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 
 
 --
+-- Name: inbox; Type: TABLE; Schema: public (migration 008_inbox.sql, 덤프가 아니라 손으로 옮김)
+--
+
+CREATE TABLE public.inbox (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  body text NOT NULL CHECK (char_length(btrim(body)) >= 1 AND char_length(body) <= 2000),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  processed_at timestamptz
+);
+CREATE INDEX inbox_unprocessed_idx ON public.inbox (created_at) WHERE processed_at IS NULL;
+
+ALTER TABLE public.inbox ENABLE ROW LEVEL SECURITY;
+CREATE POLICY inbox_admin_select ON public.inbox FOR SELECT TO authenticated
+  USING (lower(auth.jwt() ->> 'email') = lower(public.get_admin_email()));
+CREATE POLICY inbox_admin_insert ON public.inbox FOR INSERT TO authenticated
+  WITH CHECK (lower(auth.jwt() ->> 'email') = lower(public.get_admin_email()));
+
+REVOKE ALL ON public.inbox FROM anon, authenticated;
+GRANT SELECT ON public.inbox TO authenticated;
+GRANT INSERT (body) ON public.inbox TO authenticated;   -- 시각·처리 여부는 기본값만
+GRANT ALL ON public.inbox TO service_role;
+
+
+--
 -- PostgreSQL database dump complete
 --
 

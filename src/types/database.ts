@@ -149,6 +149,12 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface InboxItem {
+  id: string;
+  body: string;
+  created_at: string;
+}
+
 export interface ChatHistoryItem {
   role: 'user' | 'assistant';
   content: string;

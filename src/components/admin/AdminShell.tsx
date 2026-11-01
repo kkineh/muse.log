@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   Settings,
   ExternalLink,
+  Inbox,
   type LucideIcon,
 } from 'lucide-react';
 import LogoutButton from './LogoutButton';
@@ -29,6 +30,7 @@ const groups: { label: string; items: Item[] }[] = [
       { name: 'Categories', href: '/admin/categories', icon: FolderTree },
       { name: 'Tags', href: '/admin/tags', icon: Tag },
       { name: 'Media', href: '/admin/media', icon: ImageIcon },
+      { name: 'Inbox', href: '/admin/inbox', icon: Inbox },
     ],
   },
   {

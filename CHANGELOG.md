@@ -40,6 +40,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Removed: graph highlight of source posts after a chat answer (`useChat` `onSources`, `highlightedPosts` in `NeuralNetwork`)
   - Migration `007_drop_rag.sql` applied to production on 2026-11-01. `supabase/schema.sql` and `data.sql` no longer list `post_embeddings` or `search_posts`
 
+- **brain inbox (roadmap ⑤)** - see `docs/design/brain-inbox.md`
+  - Migration `008_inbox.sql`: `inbox` table (`body` 1-2000 chars, `created_at`, `processed_at`). Admin-only SELECT/INSERT RLS, `INSERT (body)` column grant, no UPDATE/DELETE for `authenticated`, nothing for `anon`
+  - `/admin/inbox`: textarea (Cmd/Ctrl+Enter to save) and the unprocessed list as plain text. No edit or delete
+  - `GET`/`POST /api/admin/inbox`: admin check, cross-site block (`Sec-Fetch-Site`, Origin host), JSON only (415), 16KB (413), 1-2000 chars after trim (400), `no-store`. Store errors log the error code only
+  - `scripts/brain-inbox.mjs count | list | done <id>...` (service role, local only). `list` strips control, ANSI and bidi characters; `done` accepts up to 50 uuids
+  - Tests: `src/lib/inbox/handler.test.mjs`, `scripts/lib/brain-inbox.test.mjs`, `src/lib/admin-email.test.mjs`
+
 - **D3.js Force Simulation Integration**
   - Implemented physics-based node positioning using D3.js force simulation
   - Components and Hooks:
@@ -161,6 +168,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Breaking**: migration `supabase/migrations/007_drop_rag.sql` drops `search_posts`, `search_chunks`, `post_embeddings`, `post_chunks`. The repo does not apply it. Run it manually in the Supabase SQL editor only after this deployment is live. After it is applied, do not roll back to a pre-④ deployment
 
 ### Fixed
+- **Admin check with an unset env var**: `isAdmin()`, `admin/layout.tsx` and `proxy.ts` compared `user.email === NEXT_PUBLIC_ADMIN_EMAIL`, which passed when both were undefined. They now share `isAdminEmail()` (`src/lib/admin-email.ts`), which returns false when either side is empty and compares case-insensitively
 - **Blog chat cache on delete**: `DELETE /api/posts` did not invalidate any cache, so a deleted post could stay in chat answers for up to 24h. It now invalidates `blog-chat`
 - **Admin delete errors**: post and media delete in admin now show the API error instead of silently succeeding
 - **Hydration error**: Fixed SSR mismatch in NeuralNetwork component
