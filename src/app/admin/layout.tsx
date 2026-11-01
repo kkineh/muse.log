@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
 import AdminShell from '@/components/admin/AdminShell';
+import { isAdminEmail } from '@/lib/admin-email';
 
 export default async function AdminLayout({
   children,
@@ -18,8 +19,7 @@ export default async function AdminLayout({
     redirect('/login');
   }
 
-  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-  if (user.email !== adminEmail) {
+  if (!isAdminEmail(user.email)) {
     redirect('/');
   }
 

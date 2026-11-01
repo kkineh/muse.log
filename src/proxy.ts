@@ -1,6 +1,7 @@
 // Proxy to protect /admin routes
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isAdminEmail } from '@/lib/admin-email';
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
@@ -45,8 +46,7 @@ export async function proxy(request: NextRequest) {
     }
 
     // Check if user is admin
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-    if (user.email !== adminEmail) {
+    if (!isAdminEmail(user.email)) {
       // Not admin, redirect to home
       return NextResponse.redirect(new URL('/', request.url));
     }

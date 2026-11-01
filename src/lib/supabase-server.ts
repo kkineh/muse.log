@@ -1,6 +1,7 @@
 // Server-side Supabase client for API routes and Server Components
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { isAdminEmail } from '@/lib/admin-email';
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -39,6 +40,5 @@ export async function isAdmin() {
 
   if (!user) return false;
 
-  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-  return user.email === adminEmail;
+  return isAdminEmail(user.email);
 }
