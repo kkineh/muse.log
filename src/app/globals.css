@@ -1007,6 +1007,16 @@
     }
   }
 
+  /* 로그인 배경 빛 번짐: Tailwind v4의 translate 속성과 겹치지 않게 transform만 쓴다 */
+  @keyframes login-drift {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+    }
+    50% {
+      transform: translate(40px, -30px) scale(1.08);
+    }
+  }
+
   .neural-node-glow {
     filter: drop-shadow(0 0 8px currentColor);
   }
