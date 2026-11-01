@@ -84,30 +84,6 @@ $$;
 ALTER FUNCTION public.rls_auto_enable() OWNER TO postgres;
 
 --
--- Name: search_posts(public.vector, double precision, integer); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.search_posts(query_embedding public.vector, match_threshold double precision DEFAULT 0.7, match_count integer DEFAULT 3) RETURNS TABLE(id uuid, title text, content text, slug text, similarity double precision)
-    LANGUAGE sql STABLE
-    AS $$
-  SELECT
-    p.id,
-    p.title,
-    p.content,
-    p.slug,
-    1 - (e.embedding <=> query_embedding) AS similarity
-  FROM posts p
-  JOIN post_embeddings e ON p.id = e.post_id
-  WHERE p.published = true
-    AND 1 - (e.embedding <=> query_embedding) > match_threshold
-  ORDER BY e.embedding <=> query_embedding
-  LIMIT match_count;
-$$;
-
-
-ALTER FUNCTION public.search_posts(query_embedding public.vector, match_threshold double precision, match_count integer) OWNER TO postgres;
-
---
 -- Name: update_updated_at(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -179,20 +155,6 @@ CREATE TABLE public.media (
 ALTER TABLE public.media OWNER TO postgres;
 
 --
--- Name: post_embeddings; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.post_embeddings (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
-    post_id uuid,
-    embedding public.vector(1536),
-    created_at timestamp with time zone DEFAULT now()
-);
-
-
-ALTER TABLE public.post_embeddings OWNER TO postgres;
-
---
 -- Name: posts; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -245,22 +207,6 @@ ALTER TABLE ONLY public.media
 
 
 --
--- Name: post_embeddings post_embeddings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.post_embeddings
-    ADD CONSTRAINT post_embeddings_pkey PRIMARY KEY (id);
-
-
---
--- Name: post_embeddings post_embeddings_post_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.post_embeddings
-    ADD CONSTRAINT post_embeddings_post_id_key UNIQUE (post_id);
-
-
---
 -- Name: posts posts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -302,20 +248,6 @@ CREATE INDEX idx_categories_slug ON public.categories USING btree (slug);
 --
 
 CREATE INDEX idx_media_created_at ON public.media USING btree (created_at DESC);
-
-
---
--- Name: idx_post_embeddings_embedding; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_post_embeddings_embedding ON public.post_embeddings USING ivfflat (embedding public.vector_cosine_ops);
-
-
---
--- Name: idx_post_embeddings_post_id; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_post_embeddings_post_id ON public.post_embeddings USING btree (post_id);
 
 
 --
@@ -373,14 +305,6 @@ CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON public.posts FOR EACH RO
 
 ALTER TABLE ONLY public.categories
     ADD CONSTRAINT categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.categories(id) ON DELETE CASCADE;
-
-
---
--- Name: post_embeddings post_embeddings_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.post_embeddings
-    ADD CONSTRAINT post_embeddings_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
 
 
 --
@@ -450,28 +374,6 @@ ALTER TABLE public.media ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY media_admin_all ON public.media TO authenticated USING (((auth.jwt() ->> 'email'::text) = public.get_admin_email())) WITH CHECK (((auth.jwt() ->> 'email'::text) = public.get_admin_email()));
-
-
---
--- Name: post_embeddings; Type: ROW SECURITY; Schema: public; Owner: postgres
---
-
-ALTER TABLE public.post_embeddings ENABLE ROW LEVEL SECURITY;
-
---
--- Name: post_embeddings post_embeddings_admin_all; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY post_embeddings_admin_all ON public.post_embeddings TO authenticated USING (((auth.jwt() ->> 'email'::text) = public.get_admin_email())) WITH CHECK (((auth.jwt() ->> 'email'::text) = public.get_admin_email()));
-
-
---
--- Name: post_embeddings post_embeddings_select_public; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY post_embeddings_select_public ON public.post_embeddings FOR SELECT USING ((EXISTS ( SELECT 1
-   FROM public.posts
-  WHERE ((posts.id = post_embeddings.post_id) AND (posts.published = true)))));
 
 
 --
@@ -551,15 +453,6 @@ GRANT ALL ON FUNCTION public.rls_auto_enable() TO service_role;
 
 
 --
--- Name: FUNCTION search_posts(query_embedding public.vector, match_threshold double precision, match_count integer); Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON FUNCTION public.search_posts(query_embedding public.vector, match_threshold double precision, match_count integer) TO anon;
-GRANT ALL ON FUNCTION public.search_posts(query_embedding public.vector, match_threshold double precision, match_count integer) TO authenticated;
-GRANT ALL ON FUNCTION public.search_posts(query_embedding public.vector, match_threshold double precision, match_count integer) TO service_role;
-
-
---
 -- Name: FUNCTION update_updated_at(); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -593,15 +486,6 @@ GRANT ALL ON TABLE public.categories TO service_role;
 GRANT ALL ON TABLE public.media TO anon;
 GRANT ALL ON TABLE public.media TO authenticated;
 GRANT ALL ON TABLE public.media TO service_role;
-
-
---
--- Name: TABLE post_embeddings; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.post_embeddings TO anon;
-GRANT ALL ON TABLE public.post_embeddings TO authenticated;
-GRANT ALL ON TABLE public.post_embeddings TO service_role;
 
 
 --

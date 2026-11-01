@@ -59,14 +59,6 @@ e5a45f03-fb4e-4438-9587-b4f60922ce7d	생각 자체를 위한 여정이 아니다
 
 
 --
--- Data for Name: post_embeddings; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.post_embeddings (id, post_id, embedding, created_at) FROM stdin;
-\.
-
-
---
 -- PostgreSQL database dump complete
 --
 
