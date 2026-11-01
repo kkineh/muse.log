@@ -9,7 +9,6 @@ import {
   FolderTree,
   Tag,
   Image as ImageIcon,
-  Bot,
   Settings,
   ExternalLink,
   type LucideIcon,
@@ -35,7 +34,6 @@ const groups: { label: string; items: Item[] }[] = [
   {
     label: 'System',
     items: [
-      { name: 'RAG', href: '/admin/rag', icon: Bot },
       { name: 'Settings', href: '/admin/settings', icon: Settings },
     ],
   },

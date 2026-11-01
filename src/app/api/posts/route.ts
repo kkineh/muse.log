@@ -3,7 +3,7 @@ import { createClient, isAdmin } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import type { CreatePostRequest, UpdatePostRequest } from '@/types/database';
-import { generateChunkEmbeddings } from '@/lib/rag/embeddings';
+import { revalidateBlogChat } from '@/lib/cache-tags';
 import { BRAIN_STORAGE_PREFIX } from '@/lib/constants';
 
 const STORAGE_MARKER = '/storage/v1/object/public/blog-images/';
@@ -12,6 +12,18 @@ const BRAIN_MANAGED_ERROR = 'brain에서 관리하는 글입니다';
 const BRAIN_EDITABLE_KEYS = new Set(['id', 'category_id', 'tag_ids']);
 // DB 보호 트리거(006)가 내는 insufficient_privilege
 const GUARD_ERROR_CODE = '42501';
+
+// 채팅 캐시 무효화 실패는 쓰기 응답을 막지 않는다 (TTL 24시간이 상한)
+function refreshChatCache() {
+  try {
+    revalidateBlogChat();
+  } catch (error) {
+    console.error(
+      'Failed to revalidate chat cache:',
+      error instanceof Error ? error.name : 'unknown'
+    );
+  }
+}
 
 function extractStoragePaths(content: string): string[] {
   const pattern = /!\[.*?\]\((https?:\/\/[^)]+)\)/g;
@@ -131,15 +143,7 @@ export async function POST(request: Request) {
     }
   }
 
-  // Generate chunk embeddings if post is published
-  if (data.published) {
-    try {
-      await generateChunkEmbeddings(data.id, data.title, data.content, data.excerpt);
-    } catch (embedError) {
-      console.error('Failed to generate chunk embeddings:', embedError);
-      // Don't fail the request if embedding generation fails
-    }
-  }
+  refreshChatCache();
 
   return NextResponse.json(data, { status: 201 });
 }
@@ -243,14 +247,7 @@ export async function PATCH(request: Request) {
     }
   }
 
-  // 7. Regenerate chunk embeddings if content changed and post is published
-  if ((updates.content || updates.title) && data.published) {
-    try {
-      await generateChunkEmbeddings(data.id, data.title, data.content, data.excerpt);
-    } catch (embedError) {
-      console.error('Failed to regenerate chunk embeddings:', embedError);
-    }
-  }
+  refreshChatCache();
 
   // 6. 온디맨드 재검증
   try {
@@ -324,6 +321,8 @@ export async function DELETE(request: Request) {
       }
     }
   }
+
+  refreshChatCache();
 
   return NextResponse.json({ success: true });
 }

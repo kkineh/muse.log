@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
+import { revalidateBlogChat } from '@/lib/cache-tags';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,8 @@ export async function POST(request: Request) {
     if (path === '/') revalidatePath(path, 'layout');
     else revalidatePath(path);
   }
+
+  revalidateBlogChat();
 
   return NextResponse.json({ ok: true, paths: REVALIDATE_PATHS });
 }

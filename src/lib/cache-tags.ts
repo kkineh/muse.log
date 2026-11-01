@@ -1,4 +1,5 @@
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
+import { BLOG_CHAT_TAG } from '@/lib/chat/config';
 
 /**
  * Purge cached category data after a write.
@@ -11,4 +12,12 @@ export function revalidateCategories() {
   revalidatePath('/api/categories');
   revalidatePath('/admin/categories');
   revalidatePath('/', 'layout');
+}
+
+/**
+ * Purge the chat's cached index, post bodies and first-turn answers.
+ * `revalidatePath` does not clear unstable_cache entries, so the tag is needed.
+ */
+export function revalidateBlogChat() {
+  revalidateTag(BLOG_CHAT_TAG, { expire: 0 });
 }

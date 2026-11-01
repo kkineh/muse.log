@@ -156,8 +156,15 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ChatHistoryItem {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface ChatRequest {
   message: string;
+  history?: ChatHistoryItem[];
+  readSlugs?: string[];
 }
 
 export interface ChatResponse {
