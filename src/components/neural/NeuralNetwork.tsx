@@ -13,7 +13,6 @@ import type { NeuralNode } from '@/lib/neural-graph-builder';
 interface NeuralNetworkProps {
   data: NeuralNode;
   activeCategory: string | null;
-  highlightedPosts: string[];
   onNodeClick: (node: NeuralNode) => void;
   onBackgroundClick: () => void;
   tagPostLinks?: { source: string; target: string; sharedCount: number }[];
@@ -32,7 +31,6 @@ const FIELD_EXTENT: [[number, number], [number, number]] = [
 export function NeuralNetwork({
   data,
   activeCategory,
-  highlightedPosts,
   onNodeClick,
   onBackgroundClick,
   tagPostLinks,
@@ -212,19 +210,17 @@ export function NeuralNetwork({
 
   const isNodeActive = useCallback(
     (nodeId: string) => {
-      if (highlightedPosts.includes(nodeId)) return true;
       return activeSet?.has(nodeId) ?? false;
     },
-    [activeSet, highlightedPosts]
+    [activeSet]
   );
 
   const isNodeDimmed = useCallback(
     (nodeId: string) => {
       if (!activeCategory) return false;
-      if (highlightedPosts.includes(nodeId)) return false;
       return !activeSet?.has(nodeId);
     },
-    [activeCategory, activeSet, highlightedPosts]
+    [activeCategory, activeSet]
   );
 
   const isLinkDimmed = useCallback(
@@ -362,7 +358,6 @@ export function NeuralNetwork({
 
               const active = isNodeActive(node.id);
               const dimmed = isNodeDimmed(node.id);
-              const highlighted = highlightedPosts.includes(node.id);
               const blinking = blinkingSet?.has(node.id) ?? false;
               const current = node.id === currentPostId;
 
@@ -408,7 +403,7 @@ export function NeuralNetwork({
                       ? palette.sub3
                       : '#fff';
               const glowFilter =
-                active || highlighted || blinking
+                active || blinking
                   ? `drop-shadow(0 0 8px ${glowColor})`
                   : undefined;
 
@@ -440,7 +435,7 @@ export function NeuralNetwork({
                     ry={8}
                     fill={current ? 'rgba(255,255,255,0.14)' : fill}
                     stroke={blinking ? glowColor : current ? 'rgba(255,255,255,0.6)' : stroke}
-                    strokeWidth={active || highlighted || blinking ? 2 : strokeWidth}
+                    strokeWidth={active || blinking ? 2 : strokeWidth}
                     filter={glowFilter}
                   >
                     {blinking && (
@@ -486,21 +481,6 @@ export function NeuralNetwork({
                     )}
                   </text>
 
-                  {highlighted && (
-                    <rect
-                      width={w + 8}
-                      height={h + 8}
-                      x={-(w + 8) / 2}
-                      y={-(h + 8) / 2}
-                      rx={10}
-                      ry={10}
-                      fill="none"
-                      stroke={depth === 1 ? palette.cat : depth === 2 ? palette.sub : '#fff'}
-                      strokeWidth={1.5}
-                    >
-                      <animate attributeName="opacity" values="0.6;0;0.6" dur="1.5s" repeatCount="indefinite" />
-                    </rect>
-                  )}
 
                 </g>
               );

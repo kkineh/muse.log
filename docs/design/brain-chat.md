@@ -183,7 +183,7 @@ export interface ChatResponse {          // 형태 불변: useChat, CenterCard�
 - 규칙을 슬러그 문자열 대신 번호로 바꾸는 방안은 쓰지 않는다. 슬러그를 그대로 두면 디버그가 쉽고, 검증은 어차피 집합 포함 검사이다.
 - **0편일 때**: 답변 LLM을 부르지 않고 고정 문구를 돌려준다.
   - 문구: `이 블로그에서 관련된 글을 찾지 못했어요. 다른 질문을 해주시겠어요?` (기존 문구와 같은 톤)
-  - `sources: []`. `useChat`은 이때 `onSources`를 부르지 않는다(기존 동작과 같음).
+  - `sources: []`.
   - 인사, 잡담도 여기로 간다. 라우터 규칙에 "블로그 글과 무관하면 빈 배열"을 적는다.
 - 라우터 호출 자체가 실패(네트워크, 비 2xx, 타임아웃)하면 500이다. 빈 결과로 위장하지 않는다. OpenAI가 한도·결제 오류(429 `insufficient_quota` 등)를 돌려주면 503과 고정 문구 `지금은 답변을 만들 수 없어요. 잠시 후 다시 시도해주세요.`로 바꾼다(§7.3).
 
@@ -318,7 +318,7 @@ docs/design/brain-publish.md, brain-publish-quality.md   # 변경: §2.3의 주�
   ```
 - `ChatMessage`에 `isError?: boolean`을 더하고 catch의 에러 메시지에 `true`를 붙인다.
 - 응답이 429나 503이면 서버가 준 고정 `error` 문구를 에러 말풍선에 쓴다. 그 밖의 실패는 기존 문구 그대로다.
-- 응답 처리와 `onSources` 호출은 그대로다.
+- 응답 처리는 그대로다. 그래프 하이라이트(`onSources`)는 2026-11-01 사용자 결정으로 뺐다("이 기능은 불필요하겠다").
 
 ## 7. 프롬프트, 보안, 예산 차단
 
@@ -451,7 +451,7 @@ docs/design/brain-publish.md, brain-publish-quality.md   # 변경: §2.3의 주�
 | 〃 | 배포 환경에서 칩 질문 두 번째 호출의 지연이 크게 줄고 로그에 `hit` | 수동 |
 | 무효화 | 발행 후(`/api/revalidate`) 같은 질문이 바뀐 본문을 반영. 글을 `publish:false`로 내린 뒤 그 글이 더 이상 답변에 쓰이지 않음. `/api/posts` POST·PATCH(공개 토글)·DELETE 후 index 반영 | 수동 |
 | 발행 스크립트 | `/api/revalidate`가 실패하는 상황(잘못된 비밀값)에서 `--apply`가 exit 1. 성공이면 0. 출력에 "RAG"가 없음. `node --test scripts/lib/*.test.mjs` 통과 | 단위 + 수동 |
-| 응답 형태 | `ChatResponse`가 `{answer, sources[{title, slug}]}`이고, `useChat`이 그래프 하이라이트(`onSources`)를 그대로 호출 | 수동 (neural 화면) |
+| 응답 형태 | `ChatResponse`가 `{answer, sources[{title, slug}]}` | 수동 (neural 화면) |
 | 레이트 리밋 | 같은 IP로 분당 9번째 호출 → 429 + `Retry-After`. IP 헤더가 없으면 공용 버킷. 키가 5000개를 넘으면 오래된 키부터 제거되고 Map 크기가 상한을 넘지 않음. 60초 지난 항목은 청소됨. `x-vercel-forwarded-for`가 `x-real-ip`보다 우선 | 단위(`rate-limit.ts`) |
 | 예산 차단 | `CHAT_DISABLED=1` → DB·OpenAI 호출 없이 503 + 고정 문구. `OPENAI_API_KEY` 없음 → 503. OpenAI가 429 `insufficient_quota`를 주는 모의 응답 → 503 + 고정 문구(업스트림 메시지 없음) | 단위 |
 | 마감 시각 | 라우터 호출이 느려 남은 시간이 1초 미만이면 답변 호출을 하지 않고 실패 처리. 두 호출의 `timeout`이 같은 deadline에서 계산됨 | 단위 |

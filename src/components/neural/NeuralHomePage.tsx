@@ -35,7 +35,6 @@ interface NeuralHomePageProps {
 export function NeuralHomePage({ initialGraph, tagPostLinks, postLinks, isAdmin }: NeuralHomePageProps) {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [highlightedPosts, setHighlightedPosts] = useState<string[]>([]);
   const [isChatCollapsed, setIsChatCollapsed] = useState(true);
   const palette = NEURAL_PALETTES[useNeuralPalette()];
   const [navigatingPostId, setNavigatingPostId] = useState<string | null>(null);
@@ -55,21 +54,6 @@ export function NeuralHomePage({ initialGraph, tagPostLinks, postLinks, isAdmin 
     router.push(`/posts/${slug}`);
   }, [router]);
 
-  const handleHighlightPosts = useCallback((slugs: string[]) => {
-    const nodeIds: string[] = [];
-    slugs.forEach((slug) => {
-      const node = initialGraph.postMap.get(slug);
-      if (node) {
-        nodeIds.push(node.id);
-      }
-    });
-    setHighlightedPosts(nodeIds);
-
-    setTimeout(() => {
-      setHighlightedPosts([]);
-    }, 5000);
-  }, [initialGraph.postMap]);
-
   const handleBackgroundClick = useCallback(() => {
     setActiveCategory(null);
   }, []);
@@ -79,7 +63,6 @@ export function NeuralHomePage({ initialGraph, tagPostLinks, postLinks, isAdmin 
       <NeuralNetwork
         data={initialGraph.root}
         activeCategory={activeCategory}
-        highlightedPosts={highlightedPosts}
         onNodeClick={handleNodeClick}
         onBackgroundClick={handleBackgroundClick}
         tagPostLinks={tagPostLinks}
@@ -90,7 +73,6 @@ export function NeuralHomePage({ initialGraph, tagPostLinks, postLinks, isAdmin 
 
       <CenterCard
         onSlugClick={handleSlugClick}
-        onHighlightPosts={handleHighlightPosts}
         isCollapsed={isChatCollapsed}
         onCollapse={() => setIsChatCollapsed(true)}
         onExpand={() => setIsChatCollapsed(false)}

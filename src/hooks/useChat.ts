@@ -15,10 +15,6 @@ const HISTORY_LIMIT = 6;
 const ERROR_TEXT =
   '죄송합니다. 응답을 생성하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
 
-interface UseChatOptions {
-  onSources?: (slugs: string[]) => void;
-}
-
 class ChatRequestError extends Error {
   userMessage: string | null;
 
@@ -28,7 +24,7 @@ class ChatRequestError extends Error {
   }
 }
 
-export function useChat({ onSources }: UseChatOptions = {}) {
+export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const messagesRef = useRef<ChatMessage[]>(messages);
@@ -79,7 +75,6 @@ export function useChat({ onSources }: UseChatOptions = {}) {
             isNew: true,
           },
         ]);
-        if (data.sources.length > 0) onSources?.(data.sources.map((s) => s.slug));
       } catch (error) {
         console.error('Chat error:', error);
         setMessages((prev) => [
@@ -98,7 +93,7 @@ export function useChat({ onSources }: UseChatOptions = {}) {
         setIsProcessing(false);
       }
     },
-    [isProcessing, onSources]
+    [isProcessing]
   );
 
   return { messages, isProcessing, send };

@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Env: `CHAT_MODEL` (default `gpt-4o-mini`), `CHAT_DISABLED` (`1` to turn chat off). Both are documented in `.env.local.example`
   - Tests: `src/lib/chat/*.test.mjs`
   - Assistant bubbles render Markdown (`src/components/neural/ChatMarkdown.tsx`, `react-markdown` + `remark-gfm`, loaded with `next/dynamic`). Raw HTML is escaped, unsafe URLs are cleared by `defaultUrlTransform`, images are dropped, links open with `rel="noopener noreferrer nofollow"`. User bubbles stay plain text
+  - Removed: graph highlight of source posts after a chat answer (`useChat` `onSources`, `highlightedPosts` in `NeuralNetwork`)
   - Migration `007_drop_rag.sql` applied to production on 2026-11-01. `supabase/schema.sql` and `data.sql` no longer list `post_embeddings` or `search_posts`
 
 - **D3.js Force Simulation Integration**

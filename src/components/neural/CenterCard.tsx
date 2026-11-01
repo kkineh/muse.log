@@ -11,14 +11,13 @@ import { useChat } from '@/hooks/useChat';
 
 interface CenterCardProps {
   onSlugClick: (slug: string) => void;
-  onHighlightPosts: (slugs: string[]) => void;
   isCollapsed: boolean;
   onCollapse: () => void;
   onExpand: () => void;
 }
 
-export function CenterCard({ onSlugClick, onHighlightPosts, isCollapsed, onCollapse, onExpand }: CenterCardProps) {
-  const { messages, isProcessing, send } = useChat({ onSources: onHighlightPosts });
+export function CenterCard({ onSlugClick, isCollapsed, onCollapse, onExpand }: CenterCardProps) {
+  const { messages, isProcessing, send } = useChat();
   const [inputValue, setInputValue] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 

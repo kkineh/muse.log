@@ -113,7 +113,6 @@ export function NeuralMiniMap({ graph, tagPostLinks, postLinks, currentSlug }: N
         variant="mini"
         data={graph.root}
         activeCategory={activeCategory}
-        highlightedPosts={[]}
         onNodeClick={handleNodeClick}
         onBackgroundClick={handleBackgroundClick}
         tagPostLinks={tagPostLinks}
