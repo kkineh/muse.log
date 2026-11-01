@@ -135,6 +135,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Cache duration constants for categories and posts
 
 ### Changed
+- **Accent color matches the signal glow**: the default palette (스카이 블루) has `accent: '#B4F9FD'`, the color the additive signal glow on the home graph actually shows. `applyPalette()` sets `--color-primary`, `--neural-accent`, `--accent-rgb` and `--neural-border-glow` from `accent` (falls back to `cat`); node colors still use `cat`. Defaults in `globals.css` match
 - **Login page redesign**: `/login` uses the neural home look (dark background, dot grid, cyan/violet glow, glass card, `MuseLogo`), icon inputs, a show/hide password toggle, a loading spinner, and a link back to the blog. The glow drift respects `prefers-reduced-motion`. The admin check uses `isAdminEmail()`
 - **Blog chat data path**: the chat no longer uses embeddings, chunks, or pgvector search. The client (`src/hooks/useChat.ts`) sends `history` and `readSlugs` and uses returned `sources` to highlight graph nodes
 - **Brain publish exit code**: `scripts/brain-publish.mjs` exits 1 when revalidation fails after data was written. The data is kept; retry with `--revalidate-only`

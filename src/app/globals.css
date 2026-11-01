@@ -40,8 +40,8 @@
   --text-muted: #6B7280;
 
   /* Accent Colors - Cyan Glow */
-  --accent-rgb: 56 189 248;
-  --color-primary: #38BDF8;
+  --accent-rgb: 180 249 253;
+  --color-primary: #B4F9FD;
   --color-primary-light: color-mix(in srgb, var(--color-primary) 70%, white);
   --color-primary-lighter: color-mix(in srgb, var(--color-primary) 50%, white);
 
@@ -57,14 +57,14 @@
   /* Neural Network Specific */
   --neural-bg: #080B10;
   --neural-card: rgba(10, 14, 22, 0.85);
-  --neural-border-glow: #38BDF8;
+  --neural-border-glow: #B4F9FD;
   --neural-node-cat: #38BDF8;
   --neural-node-sub: #8B5CF6;
   --neural-node-leaf: #FFFFFF;
   --neural-text-primary: #F0F0F0;
   --neural-line: rgb(255 255 255 / 0.1);
   --neural-text-muted: #6B7280;
-  --neural-accent: #38BDF8;
+  --neural-accent: #B4F9FD;
 }
 
 @layer base {
