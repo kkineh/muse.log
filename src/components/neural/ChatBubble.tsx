@@ -2,6 +2,12 @@
 
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+const ChatMarkdown = dynamic(() => import('./ChatMarkdown'), {
+  ssr: false,
+  loading: () => null,
+});
 
 interface ChatBubbleProps {
   role: 'user' | 'assistant';
@@ -58,12 +64,16 @@ export function ChatBubble({
             fontFamily: 'var(--font-inter), sans-serif',
           }}
         >
-          <p className="text-[#F0F0F0] text-sm leading-relaxed whitespace-pre-wrap">
-            {displayedText}
-            {isTyping && (
-              <span className="inline-block w-1 h-4 ml-1 bg-[var(--neural-accent)] animate-pulse" />
-            )}
-          </p>
+          {role === 'assistant' ? (
+            <div className="text-[#F0F0F0] text-sm leading-relaxed break-words">
+              <ChatMarkdown text={displayedText} />
+              {isTyping && (
+                <span className="inline-block w-1 h-4 ml-1 bg-[var(--neural-accent)] animate-pulse" />
+              )}
+            </div>
+          ) : (
+            <p className="text-[#F0F0F0] text-sm leading-relaxed whitespace-pre-wrap">{displayedText}</p>
+          )}
         </div>
 
         {relatedSlugs && relatedSlugs.length > 0 && !isTyping && (
