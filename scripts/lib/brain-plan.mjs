@@ -46,7 +46,7 @@ export function plan(input) {
   }
   const scans = scanPublished(ctx, blocked);
   if (blocked.length > 0) {
-    return { blocked, actions: [], uploads: [], newTags: [], reindexCount: 0 };
+    return { blocked, actions: [], uploads: [], newTags: [] };
   }
   return { blocked, ...buildActions(ctx, scans) };
 }

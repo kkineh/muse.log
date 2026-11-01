@@ -138,9 +138,6 @@ async function main() {
     console.log(
       `\ndry-run: 바뀔 글 ${writes}편, 올릴 이미지 ${uploads}개. --apply로 적용합니다.`
     );
-    if (result.reindexCount > 0) {
-      console.log(`적용하면 RAG 재색인 대상 ${result.reindexCount}편`);
-    }
     return 0;
   }
 
@@ -150,12 +147,14 @@ async function main() {
     `\n쓰기: 이미지 ${counts.uploads}, posts ${counts.posts}, tags ${counts.tags}, ` +
       `post_tags ${counts.postTags}, post_sources ${counts.sources}, post_links ${counts.links}`
   );
+  let exitCode = 0;
   if (total > 0) {
     const r = await callRevalidate(values);
     if (r.ok) console.log('재검증 완료');
     else {
+      exitCode = 1;
       console.warn(
-        `경고: 재검증 실패 (status ${r.status}). 데이터는 들어갔습니다. 최대 24시간 뒤 반영됩니다.`
+        `재검증 실패 (status ${r.status}). 데이터는 들어갔습니다. 내린 글이 최대 24시간 답변에 남을 수 있습니다.`
       );
       console.warn(
         '  다시 시도: node scripts/brain-publish.mjs --revalidate-only'
@@ -164,12 +163,7 @@ async function main() {
   } else {
     console.log('바뀐 것 없음. 재검증 생략');
   }
-  if (result.reindexCount > 0) {
-    console.log(
-      `RAG 재색인 필요: ${result.reindexCount}편 → /admin/rag에서 일괄 재생성`
-    );
-  }
-  return 0;
+  return exitCode;
 }
 
 try {

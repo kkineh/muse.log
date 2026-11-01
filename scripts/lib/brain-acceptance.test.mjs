@@ -33,7 +33,6 @@ test('② 기준 1: 막힌 글이 하나라도 있으면 다른 정상 글의 �
   assert.deepEqual(r.actions, []);
   assert.deepEqual(r.uploads, []);
   assert.deepEqual(r.newTags, []);
-  assert.equal(r.reindexCount, 0);
 });
 
 test('② 기준 2: 이관한 노트를 그대로 발행 검사하면 모두 unchanged이고 본문이 DB와 바이트 같음', () => {
@@ -88,7 +87,6 @@ test('② 기준 2: 이관한 노트를 그대로 발행 검사하면 모두 unc
       ['nfd', 'unchanged'],
     ]
   );
-  assert.equal(r.reindexCount, 0);
   for (const n of exported) {
     const body = parseNote(n.text).body;
     assert.equal(

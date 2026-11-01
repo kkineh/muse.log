@@ -7,14 +7,12 @@ export function buildActions(ctx, scans) {
   const actions = [];
   const newTags = new Map();
   const handled = new Set();
-  let reindexCount = 0;
 
   for (const n of ctx.parsed) {
     if (n.error) continue;
     if (n.data.publish === true) {
       const a = publishAction(n, scans.get(n.path), ctx, newTags);
       if (a.postId) handled.add(a.postId);
-      if (a.reindex) reindexCount++;
       actions.push(a);
       continue;
     }
@@ -58,7 +56,6 @@ export function buildActions(ctx, scans) {
     actions,
     uploads,
     newTags: [...newTags].map(([name, slug]) => ({ name, slug })),
-    reindexCount,
   };
 }
 
@@ -93,7 +90,6 @@ function publishAction(n, scan, ctx, newTags) {
       fields,
       tags: n.tagNames ? tagChanges(null, n.tagNames, ctx, newTags) : null,
       sourcePath: n.path,
-      reindex: true,
     };
   }
 
@@ -125,7 +121,6 @@ function publishAction(n, scan, ctx, newTags) {
     tags,
     links: linksChanged ? base.links : null,
     sourcePath,
-    reindex: !row.published || contentChanged,
   };
 }
 

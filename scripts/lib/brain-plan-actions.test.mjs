@@ -104,7 +104,6 @@ test('publish:false: 이미 있는 brain 행은 published=false로만 바뀌고 
       fields: { published: false },
     },
   ]);
-  assert.equal(r.reindexCount, 0);
 });
 
 test('멱등: 같은 vault로 두 번째 실행하면 모두 unchanged, 쓰기 0, RAG 안내 없음', () => {
@@ -126,7 +125,6 @@ test('멱등: 같은 vault로 두 번째 실행하면 모두 unchanged, 쓰기 0
   db0.tags.push({ id: 't1', name: 'ERP', slug: 'erp' });
   const r1 = run({ notes, db: db0 });
   assert.deepEqual(r1.blocked, []);
-  assert.equal(r1.reindexCount, 2);
   const ins = r1.actions.find((x) => x.slug === 'a');
   assert.equal(ins.fields.category_id, 'c3');
   assert.equal(ins.fields.created_at, '2026-09-02T15:00:01.000Z');
@@ -140,7 +138,6 @@ test('멱등: 같은 vault로 두 번째 실행하면 모두 unchanged, 쓰기 0
     r2.actions.map((x) => x.status),
     ['unchanged', 'unchanged']
   );
-  assert.equal(r2.reindexCount, 0);
   assert.deepEqual(r2.newTags, []);
 });
 
@@ -169,7 +166,6 @@ test('수정: KST 날짜가 같으면 created_at을 보존하고, 바뀐 brain �
   assert.equal(a.status, 'update');
   assert.deepEqual(a.fields, { content: '바뀐 본문\n' });
   assert.deepEqual(a.tags, { add: ['new'], remove: ['t1'] });
-  assert.equal(r.reindexCount, 1);
 });
 
 test('slug 보호: 발행된 글의 slug 변경, 두 파일이 같은 slug, admin 글과 slug 충돌은 막힌다', () => {
