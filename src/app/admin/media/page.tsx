@@ -93,10 +93,9 @@ export default function MediaPage() {
 
       {media.length === 0 ? (
         <div className="adm-panel adm-section p-12 text-center">
-          <p className="mb-3" style={{ color: 'var(--text-secondary)' }}>
+          <p style={{ color: 'var(--text-secondary)' }}>
             No media files yet.
           </p>
-          <p className="adm-sub">Upload your first image to get started</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">

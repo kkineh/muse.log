@@ -18,7 +18,6 @@ export default function SettingsPage() {
 
       <div className="adm-panel adm-section">
         <h2 className="adm-section-title">Theme Color</h2>
-        <p className="adm-hint mb-4">선택한 색은 이 브라우저에 저장됩니다.</p>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
           {NEURAL_PALETTES.map((p, i) => {
             const selected = i === paletteIndex;

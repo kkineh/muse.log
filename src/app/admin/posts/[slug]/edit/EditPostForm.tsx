@@ -100,9 +100,6 @@ export function EditPostForm({ post, categories }: EditPostFormProps) {
             disabled
             className="adm-input cursor-not-allowed opacity-60"
           />
-          <p className="adm-hint">
-            Slug cannot be modified after creation to preserve URL integrity.
-          </p>
         </div>
 
         {/* Category */}

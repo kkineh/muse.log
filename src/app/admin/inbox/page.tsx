@@ -119,7 +119,7 @@ export default function InboxPage() {
     <div className="space-y-6">
       <div>
         <h1 className="adm-h1">Inbox</h1>
-        <p className="adm-sub mt-1">미처리 {items.length}건 · 옮길지는 /inbox 보고를 보고 직접 결정</p>
+        <p className="adm-sub mt-1">미처리 {items.length}건</p>
       </div>
 
       <form onSubmit={handleSubmit} className="adm-panel adm-section">

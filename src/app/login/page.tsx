@@ -195,7 +195,6 @@ export default function LoginPage() {
             <ArrowLeft size={13} />
             블로그로 돌아가기
           </Link>
-          <span>Admin access only</span>
         </div>
       </div>
     </main>
