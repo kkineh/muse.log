@@ -11,6 +11,10 @@ export default function InboxPage() {
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const fetchItems = async () => {
     try {
@@ -49,6 +53,55 @@ export default function InboxPage() {
     }
   };
 
+  const startEdit = (item: InboxItem) => {
+    setEditingId(item.id);
+    setDraft(item.body);
+    setEditError(null);
+  };
+
+  const cancelEdit = () => {
+    if (editSaving) return;
+    setEditingId(null);
+    setEditError(null);
+  };
+
+  const saveEdit = async () => {
+    const body = draft.trim();
+    if (!editingId || !body || editSaving) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      const res = await fetch('/api/admin/inbox', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingId, body }),
+      });
+      if (res.status === 404) {
+        setEditError('이미 처리됐거나 없는 항목입니다. 새로고침해 주세요.');
+        return;
+      }
+      if (!res.ok) throw new Error(String(res.status));
+      const { item } = (await res.json()) as { item: InboxItem };
+      setItems((prev) => prev.map((it) => (it.id === item.id ? item : it)));
+      setEditingId(null);
+    } catch {
+      setEditError('수정하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.nativeEvent.isComposing) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEdit();
+    } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      void saveEdit();
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     void save();
@@ -66,7 +119,7 @@ export default function InboxPage() {
     <div className="space-y-6">
       <div>
         <h1 className="adm-h1">Inbox</h1>
-        <p className="adm-sub mt-1">미처리 {items.length}건 · 다음 brain 세션에서 /inbox로 처리</p>
+        <p className="adm-sub mt-1">미처리 {items.length}건 · 옮길지는 /inbox 보고를 보고 직접 결정</p>
       </div>
 
       <form onSubmit={handleSubmit} className="adm-panel adm-section">
@@ -104,12 +157,62 @@ export default function InboxPage() {
           <ul className="space-y-4">
             {items.map((item) => (
               <li key={item.id}>
-                <time className="adm-sub text-xs" dateTime={item.created_at}>
-                  {new Date(item.created_at).toLocaleString()}
-                </time>
-                <p className="mt-1 whitespace-pre-wrap break-words" style={{ color: 'var(--text-primary)' }}>
-                  {item.body}
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <time className="adm-sub text-xs" dateTime={item.created_at}>
+                    {new Date(item.created_at).toLocaleString()}
+                  </time>
+                  {editingId !== item.id && (
+                    <button
+                      type="button"
+                      onClick={() => startEdit(item)}
+                      disabled={editSaving}
+                      className="adm-btn disabled:opacity-60"
+                    >
+                      수정
+                    </button>
+                  )}
+                </div>
+                {editingId === item.id ? (
+                  <div className="mt-1">
+                    <textarea
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={handleEditKeyDown}
+                      maxLength={MAX_CHARS}
+                      rows={4}
+                      disabled={editSaving}
+                      autoFocus
+                      className="adm-input w-full resize-y"
+                    />
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <span className="adm-sub">
+                        {editError ?? `${draft.trim().length} / ${MAX_CHARS}`}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          disabled={editSaving}
+                          className="adm-btn disabled:opacity-60"
+                        >
+                          취소
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void saveEdit()}
+                          disabled={editSaving || !draft.trim()}
+                          className="adm-btn adm-btn-primary disabled:opacity-60"
+                        >
+                          {editSaving ? '저장 중...' : '저장'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-1 whitespace-pre-wrap break-words" style={{ color: 'var(--text-primary)' }}>
+                    {item.body}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

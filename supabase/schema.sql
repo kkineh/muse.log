@@ -580,6 +580,12 @@ GRANT SELECT ON public.inbox TO authenticated;
 GRANT INSERT (body) ON public.inbox TO authenticated;   -- 시각·처리 여부는 기본값만
 GRANT ALL ON public.inbox TO service_role;
 
+-- migration 009_inbox_update.sql: admin이 미처리 항목의 body만 수정
+CREATE POLICY inbox_admin_update ON public.inbox FOR UPDATE TO authenticated
+  USING (lower(auth.jwt() ->> 'email') = lower(public.get_admin_email()) AND processed_at IS NULL)
+  WITH CHECK (lower(auth.jwt() ->> 'email') = lower(public.get_admin_email()) AND processed_at IS NULL);
+GRANT UPDATE (body) ON public.inbox TO authenticated;   -- 컬럼 단위만
+
 
 --
 -- PostgreSQL database dump complete

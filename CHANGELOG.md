@@ -46,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `GET`/`POST /api/admin/inbox`: admin check, cross-site block (`Sec-Fetch-Site`, Origin host), JSON only (415), 16KB (413), 1-2000 chars after trim (400), `no-store`. Store errors log the error code only
   - `scripts/brain-inbox.mjs count | list | done <id>...` (service role, local only). `list` strips control, ANSI and bidi characters; `done` accepts up to 50 uuids
   - Tests: `src/lib/inbox/handler.test.mjs`, `scripts/lib/brain-inbox.test.mjs`, `src/lib/admin-email.test.mjs`
+  - Inbox edit (2026-11-03): migration `009_inbox_update.sql` adds `inbox_admin_update` (admin email AND `processed_at IS NULL`, USING and WITH CHECK) and `GRANT UPDATE (body)` only; processed rows are locked, DELETE still absent. `PATCH /api/admin/inbox` `{id, body}` (uuid check before any DB call, 404 when no unprocessed row matches, same guards and error mapping as POST via one shared function). `/admin/inbox` gets a per-item Edit button with inline textarea (Cmd/Ctrl+Enter, Esc). The model never edits inbox content; `/inbox` only reports and proposes
+  - Tests: PATCH cases in `src/lib/inbox/handler.test.mjs`, new `src/lib/inbox/store.test.mjs`
 
 - **D3.js Force Simulation Integration**
   - Implemented physics-based node positioning using D3.js force simulation

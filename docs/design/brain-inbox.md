@@ -5,7 +5,7 @@
 ## 1. 결정 (brain 로드맵 명세)
 
 - 위치: muse.log admin 메뉴 → Supabase `inbox` 테이블. admin 전용 RLS, 공개 API 비노출 (R15)
-- 입력은 텍스트 + 시각만. 처리 후 삭제하지 않고 `processed_at` 기록
+- 입력은 텍스트 + 시각만. 처리 후 삭제하지 않고 `processed_at` 기록. 미처리 항목의 본문은 사용자가 고칠 수 있다 (2026-11-03)
 - 분류·정제는 Claude 세션에서 (R3). 생각 노드·링크·index는 brain 세션에서만 (R10)
 - SessionStart hook이 미처리 inbox 건수를 알린다 (R9 번외)
 - 새 인프라 없음
@@ -13,6 +13,12 @@
 사용자 결정 (2026-11-01)
 - 입력 화면: 입력창 + 미처리 목록. 수정·삭제 없음
 - 처리 절차: claude-config 스킬 `/inbox`
+
+사용자 결정 (2026-11-03) - 11-01의 "수정 없음"을 바꾼다
+- inbox 항목은 사용자가 고칠 수 있다. 삭제는 여전히 없다
+- 모델은 inbox 내용을 고치지 않는다. 고치는 것은 사용자만 (화면의 수정 버튼 → PATCH)
+- `/inbox`는 상태 보고와 가벼운 이동 제안만 한다
+- brain으로 옮기는 것(material append, 노드 후보)과 `done`은 사용자가 승인했을 때만
 
 ## 2. 통과 기준
 
@@ -43,8 +49,9 @@ GRANT INSERT (body) ON public.inbox TO authenticated;   -- 시각·처리 여부
 GRANT ALL ON public.inbox TO service_role;
 ```
 
-- UPDATE·DELETE 정책과 권한은 authenticated에 주지 않는다. 처리 표시는 service role 스크립트만 한다
+- DELETE 정책과 권한은 authenticated에 주지 않는다. 처리 표시(`processed_at`)는 service role 스크립트만 한다
 - `GRANT INSERT (body)`라서 클라이언트가 `created_at`, `processed_at`을 넣을 수 없다
+- 수정 (`supabase/migrations/009_inbox_update.sql`, 2026-11-03): `inbox_admin_update` 정책(FOR UPDATE, USING·WITH CHECK 모두 admin 이메일 일치 AND `processed_at IS NULL`)과 `GRANT UPDATE (body)`. 컬럼 단위라 `created_at`·`processed_at`·`id`는 못 바꾸고, 처리된 행은 잠겨 수정이 0행이 된다. 008 머리말 주석은 고치지 않고 009 머리말에 대체 관계를 적었다
 - 규모: 하루 몇 줄. 용량 영향 없음
 
 ## 4. API (`src/app/api/admin/inbox/route.ts`)
@@ -53,10 +60,12 @@ GRANT ALL ON public.inbox TO service_role;
 |---|---|---|
 | GET | 미처리 항목 최신순 50개 `{id, body, created_at}` | 200 `{items}` |
 | POST | `{body}` 저장 | 201 `{item}` |
+| PATCH | `{id, body}` 미처리 항목의 본문 수정 | 200 `{item}`, 없거나 처리됨 404 `{error:'Not Found'}` |
 
-- 둘 다 `isAdmin()`이 거짓이면 401. DB 접근은 사용자 세션 클라이언트(`createClient()`)라 RLS가 두 번째 벽
-- POST 순서: admin 확인(401) → 다른 사이트 요청 차단(`Sec-Fetch-Site: cross-site` 또는 Origin host ≠ 요청 host면 403) → `Content-Type`이 `application/json`으로 시작하지 않으면 415 → 본문을 끝까지 읽어 16KB 넘으면 413 → `body`가 문자열이 아니거나 trim 후 1~2000자가 아니면 400 → trim한 값을 저장 201
-- 저장소 오류는 코드만 로그에 남긴다(CHECK 위반 details에 본문이 들어감). 42501 → 403, 23514 → 400, 나머지 500. 응답에도 Supabase 메시지를 넣지 않는다
+- 모두 `isAdmin()`이 거짓이면 401. DB 접근은 사용자 세션 클라이언트(`createClient()`)라 RLS가 두 번째 벽
+- POST·PATCH 공통 검사(`readWriteRequest` 한 함수라 순서가 갈라지지 않는다): admin 확인(401) → 다른 사이트 요청 차단(`Sec-Fetch-Site: cross-site` 또는 Origin host ≠ 요청 host면 403) → `Content-Type`이 `application/json`으로 시작하지 않으면 415 → 본문을 끝까지 읽어 16KB 넘으면 413 → `body`가 문자열이 아니거나 trim 후 1~2000자가 아니면 400 → trim한 값을 저장 201
+- PATCH는 위 검사 뒤에 `id`가 uuid 형식 문자열이 아니면 400(DB 호출 전), 본문 검사는 POST와 같다. 저장은 `update({body}).eq('id').is('processed_at', null).select()`이고 0행이면 404다. 응답에 id·본문을 싣지 않는다
+- 저장소 오류는 코드만 로그에 남긴다(CHECK 위반 details에 본문이 들어감). 42501 → 403, 23514 → 400, 나머지 500 (POST·PATCH 공통). 응답에도 Supabase 메시지를 넣지 않는다
 - admin 판별은 `isAdminEmail()`(`src/lib/admin-email.ts`): 사용자 이메일과 `NEXT_PUBLIC_ADMIN_EMAIL` 중 하나라도 비면 거짓, 대소문자 무시. `isAdmin()`, `admin/layout.tsx`, `proxy.ts`가 같이 쓴다
 - `dynamic = 'force-dynamic'`, 모든 응답(401·4xx·5xx 포함) `Cache-Control: no-store`. 캐시하지 않는다: admin 한 명이 가끔 쓰는 쓰기 경로이고, 목록은 저장 직후 바로 보여야 한다
 - 공개 경로(`/api/posts` 등)와 공개 캐시 태그에 inbox를 넣지 않는다
@@ -65,7 +74,8 @@ GRANT ALL ON public.inbox TO service_role;
 
 - `AdminShell` Content 그룹에 `Inbox` 추가 (모바일 상단 바에도 자동으로 나옴)
 - textarea 한 개 + 저장 버튼. Cmd/Ctrl+Enter로 저장. 저장 중 버튼 잠금, 실패 시 입력 유지 + 에러 문구
-- 아래에 미처리 목록: 시각(로컬 시간) + 본문(줄바꿈 유지, 일반 텍스트. 마크다운·HTML로 렌더하지 않음). 수정·삭제 버튼 없음
+- 아래에 미처리 목록: 시각(로컬 시간) + 본문(줄바꿈 유지, 일반 텍스트. 마크다운·HTML로 렌더하지 않음). 항목마다 수정 버튼 → 그 자리에서 textarea(2000자, Cmd/Ctrl+Enter 저장, Esc·취소, 저장 중 잠금, 실패 시 에러 문구). 성공하면 목록의 그 항목만 바꾼다. 삭제 버튼 없음
+- 부제: `미처리 N건 · 옮길지는 /inbox 보고를 보고 직접 결정`. 항목은 여기 쌓이고, brain으로 옮기는 것은 사용자가 정할 때만
 - 인증은 `admin/layout.tsx`가 이미 한다
 
 ## 6. 처리 스크립트 (`scripts/brain-inbox.mjs`)
@@ -103,12 +113,16 @@ muse.log 경로는 세션 시작 안내에 찍힌 경로를 쓴다. 없으면 br
 
 - `scripts/lib/brain-inbox.test.mjs`: count/list/done, 잘못된 id, 키 값이 출력에 없음
 - `src/app/api/admin/inbox` 핸들러: 401, 415, 413, 400, 201, GET 200, `no-store` (route 로직을 `src/lib/inbox/handler.ts`로 분리해 의존성 주입)
+- PATCH: 401/403/415/413/400 검사 순서, id·body 검증, 200(trim), 0행 404(id·본문 비노출), 저장소 오류 매핑과 로그, `no-store`
+- `src/lib/inbox/store.test.mjs`: update가 `{body}`만 보내고 미처리 행만 대상으로 하는지, 0행은 not-found(오류 아님)
 - 배포 후 실측: anon 키로 `GET/POST /rest/v1/inbox` → 0행/권한 거부, 비로그인 `GET/POST /api/admin/inbox` → 401, admin 입력 → hook 건수 → `/inbox` 처리 → 0
 
 ## 10. 보안 검토 (security, 2026-11-01)
 
 - 막는 항목 2건 반영: `isAdmin()`이 `undefined === undefined`로 통과하던 문제, 저장소 오류에 본문이 섞여 로그로 나가던 문제
 - 반영하지 않은 것: 미처리 500건 초과 시 429 (admin 한 명이라 생략), anon의 `get_admin_email()` 실행 권한 회수 (inbox 이전부터 있던 문제, 별도 과제)
+- 수정 허용(2026-11-03) 수용한 위험: `/inbox`가 항목을 보여 준 뒤 `done` 전에 사용자가 본문을 고칠 수 있다. 사용자 본인의 변경이라 받아들인다. 완화: 스킬이 `done` 직전에 `list`를 다시 읽어 그 사이 본문이 달라진 항목은 `done` 대상에서 뺀다. 처리된 행은 RLS로 잠겨 있어 `done` 이후 수정은 불가능하다
+- 수정 정책은 컬럼 단위 `GRANT UPDATE (body)`와 `processed_at IS NULL` 조건의 USING·WITH CHECK 두 겹이다. 검증 쿼리는 009 하단 주석
 - 운영 확인 과제: Supabase Auth의 이메일 확인 켜짐, 가입 개방 여부, `app_settings.admin_email`과 `NEXT_PUBLIC_ADMIN_EMAIL` 일치
 
 ## 11. 비용

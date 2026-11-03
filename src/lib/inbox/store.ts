@@ -28,5 +28,16 @@ export function createInboxStore(supabase: SupabaseClient): InboxStore {
         .single();
       return wrap(data as InboxItem | null, error);
     },
+    async update(id, body) {
+      const { data, error } = await supabase
+        .from('inbox')
+        .update({ body })
+        .eq('id', id)
+        .is('processed_at', null)
+        .select(COLUMNS);
+      if (error) return { ok: false, code: error.code ?? 'unknown' };
+      const rows = (data ?? []) as InboxItem[];
+      return { ok: true, value: rows[0] ?? null };
+    },
   };
 }

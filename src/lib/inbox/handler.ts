@@ -16,6 +16,8 @@ export type StoreResult<T> = { ok: true; value: T } | { ok: false; code: string 
 export interface InboxStore {
   listUnprocessed(limit: number): Promise<StoreResult<InboxItem[]>>;
   insert(body: string): Promise<StoreResult<InboxItem>>;
+  /** 미처리 항목의 body만 바꾼다. 대상 행이 없으면 value가 null */
+  update(id: string, body: string): Promise<StoreResult<InboxItem | null>>;
 }
 
 export interface InboxDeps {
@@ -65,36 +67,75 @@ export async function handleInboxGet(deps: InboxDeps): Promise<HandlerResult> {
   return result(200, { items: r.value });
 }
 
-export async function handleInboxPost(
+// POST·PATCH가 같이 쓰는 쓰기 요청 검사. 순서: 401 → 403 → 415 → 413 → 400(JSON)
+async function readWriteRequest(
   request: Request,
   deps: InboxDeps
-): Promise<HandlerResult> {
-  if (!(await deps.isAdmin())) return fail(401, 'Unauthorized');
-  if (isCrossSite(request)) return fail(403, 'Forbidden');
+): Promise<{ ok: true; json: unknown } | { ok: false; res: HandlerResult }> {
+  if (!(await deps.isAdmin())) return { ok: false, res: fail(401, 'Unauthorized') };
+  if (isCrossSite(request)) return { ok: false, res: fail(403, 'Forbidden') };
 
   const type = (request.headers.get('content-type') ?? '').toLowerCase();
-  if (!type.startsWith('application/json')) return fail(415, 'Unsupported Media Type');
+  if (!type.startsWith('application/json')) {
+    return { ok: false, res: fail(415, 'Unsupported Media Type') };
+  }
 
   let raw: string;
   try {
     raw = await request.text();
   } catch {
-    return fail(400, 'Invalid body');
+    return { ok: false, res: fail(400, 'Invalid body') };
   }
-  if (Buffer.byteLength(raw) > MAX_REQUEST_BYTES) return fail(413, 'Payload Too Large');
+  if (Buffer.byteLength(raw) > MAX_REQUEST_BYTES) {
+    return { ok: false, res: fail(413, 'Payload Too Large') };
+  }
 
-  let parsed: unknown;
   try {
-    parsed = JSON.parse(raw);
+    return { ok: true, json: JSON.parse(raw) };
   } catch {
-    return fail(400, 'Invalid body');
+    return { ok: false, res: fail(400, 'Invalid body') };
   }
-  const value = (parsed as { body?: unknown } | null)?.body;
-  if (typeof value !== 'string') return fail(400, 'Invalid body');
+}
+
+/** trim 후 1~2000자 문자열이면 trim한 값, 아니면 null */
+function parseBody(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
   const body = value.trim();
-  if (body.length < 1 || body.length > MAX_BODY_CHARS) return fail(400, 'Invalid body');
+  return body.length < 1 || body.length > MAX_BODY_CHARS ? null : body;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function handleInboxPost(
+  request: Request,
+  deps: InboxDeps
+): Promise<HandlerResult> {
+  const req = await readWriteRequest(request, deps);
+  if (!req.ok) return req.res;
+
+  const body = parseBody((req.json as { body?: unknown } | null)?.body);
+  if (body === null) return fail(400, 'Invalid body');
 
   const r = await deps.store.insert(body);
   if (!r.ok) return storeFailure(r.code, deps, 'insert');
   return result(201, { item: r.value });
+}
+
+export async function handleInboxPatch(
+  request: Request,
+  deps: InboxDeps
+): Promise<HandlerResult> {
+  const req = await readWriteRequest(request, deps);
+  if (!req.ok) return req.res;
+
+  const json = req.json as { id?: unknown; body?: unknown } | null;
+  const id = json?.id;
+  if (typeof id !== 'string' || !UUID_RE.test(id)) return fail(400, 'Invalid id');
+  const body = parseBody(json?.body);
+  if (body === null) return fail(400, 'Invalid body');
+
+  const r = await deps.store.update(id, body);
+  if (!r.ok) return storeFailure(r.code, deps, 'update');
+  if (r.value === null) return fail(404, 'Not Found'); // 없거나 이미 처리됨
+  return result(200, { item: r.value });
 }
